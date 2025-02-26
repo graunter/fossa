@@ -1,0 +1,5 @@
+#!/bin/bash
+
+mkdir -p /var/log/fossa
+mkdir -p /var/fossa
+#mkdir -p ~/fossa       # there is no used data yet

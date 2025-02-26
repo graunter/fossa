@@ -1,0 +1,8 @@
+#!/bin/bash
+
+update-rc.d fossa remove
+
+#rm -fr /etc/fossa
+#rm -fr /opt/fossa
+#rm -fr ~/fossa
+

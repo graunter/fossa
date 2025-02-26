@@ -1,0 +1,10 @@
+
+Package: fossa
+Version: 0.0.1
+Section: embedded
+Priority: optional
+Depends: libc6 (>= 2.31)
+Maintainer: STDU Zhukov Sergey <graunter@gmail.com>
+Architecture: all
+Installed-Size: 11000
+Description: service for MILUR energy counters

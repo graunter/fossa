@@ -1,0 +1,7 @@
+#!/bin/bash
+
+chmod +x /etc/init.d/fossa
+
+update-rc.d fossa defaults
+
+#service fossa start

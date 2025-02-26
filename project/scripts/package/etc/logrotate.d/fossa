@@ -1,0 +1,9 @@
+/var/log/fossa/fossa.log {
+    rotate 4
+    missingok
+    notifempty
+    size=5k 
+    olddir /var/log/fossa/oldlogs
+    copytruncate
+    nocompress
+}

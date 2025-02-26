@@ -1,0 +1,9 @@
+#!/bin/bash
+
+service fossa stop
+
+sleep 10
+
+rm -fr /var/log/fossa
+rm -fr /var/fossa
+#rm -fr /opt/fossa/__pycache__
