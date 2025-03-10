@@ -97,6 +97,60 @@ def BuildMainScreen(root=None):
     log_viever = ttk.TTkLogViewer( parent=log_wnd, follow=True )
     #login__layout.addWidget(log_viever)
 
+    # Build "Login"
+    user_frame = ttk.TTkFrame(border=True, title="Users", visible=True)
+    user_frame.setLayout(user_frame_layout := ttk.TTkVBoxLayout())
+    usr_line = ttk.TTkFrame(border=False, title="User input", visible=True)
+    usr_layout = ttk.TTkHBoxLayout()
+    usr_line.setLayout(usr_layout)
+    usr_line.addWidget(ttk.TTkSpacer())
+    usr_line.addWidget(r1 := ttk.TTkRadioButton(text="User", radiogroup="log_names", maxWidth = 3, checked=True))
+    usr_line.addWidget(ttk.TTkLabel(text="User", size=(10,1), maxWidth = 30))
+    #usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
+    usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF"))
+    usr_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
+    usr_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
+    usr_line.addWidget(ttk.TTkSpacer())
+
+    adm_line = ttk.TTkFrame(border=False, title="Admin input", visible=True)
+    adm_layout = ttk.TTkHBoxLayout()
+    adm_line.setLayout(adm_layout)
+    adm_line.addWidget(ttk.TTkSpacer())
+    adm_line.addWidget(r1 := ttk.TTkRadioButton(text="Admin", radiogroup="log_names", maxWidth = 3))
+    adm_line.addWidget(ttk.TTkLabel(text="Admin", size=(10,1), maxWidth = 30))
+    #adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
+    adm_line.addWidget(ttk.TTkLineEdit(text=""))
+    adm_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
+    adm_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
+    adm_line.addWidget(ttk.TTkSpacer())
+
+    dev_line = ttk.TTkFrame(border=False, title="Developer input", visible=True)
+    dev_layout = ttk.TTkHBoxLayout()
+    dev_line.setLayout(dev_layout)
+    dev_line.addWidget(ttk.TTkSpacer())
+    dev_line.addWidget(r1 := ttk.TTkRadioButton(text="Developer", radiogroup="log_names", maxWidth = 3))
+    dev_line.addWidget(ttk.TTkLabel(text="Developer", size=(10,1), maxWidth = 30))
+    #adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
+    dev_line.addWidget(ttk.TTkLineEdit(text=""))
+    dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
+    dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
+    dev_line.addWidget(ttk.TTkSpacer())
+
+    user_frame_layout.addWidget(ttk.TTkSpacer())
+    user_frame_layout.addWidget(usr_line)
+    user_frame_layout.addWidget(adm_line)
+    user_frame_layout.addWidget(dev_line)
+    user_frame_layout.addWidget(ttk.TTkSpacer())
+
+
+    conn_frame = ttk.TTkFrame(border=True, title="Connections", visible=True)
+
+    login_frame_layout = ttk.TTkVBoxLayout()
+    login_frame_layout.addWidget(user_frame)
+    login_frame_layout.addWidget(conn_frame)
+    login_frame.setLayout(login_frame_layout)
+
+    
 
 
 def main():

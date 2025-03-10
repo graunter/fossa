@@ -18,8 +18,10 @@ ser = serial.Serial(port='COM11', baudrate=9600, bytesize=8, parity='N',
 stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
 
 adr = range(22, 25)
+prj_ver_code = 0x00
 open_srv_code = 0x08
-asc_freq_code = 0x09
+freq_code = 0x09
+fw_ver_code = 33
 
 access_lvl_user = 0
 access_adm_user = 1
@@ -48,7 +50,7 @@ for test_adr in adr:
         print(f'>> {[hex(one) for one in send_packet]}')
         print(f'<< {[hex(one) for one in received]}')
 
-        send_dat = sum([[test_adr], [0x01], [asc_freq_code], list(cmd_crc)], [])
+        send_dat = sum([[test_adr], [0x01], [freq_code], list(cmd_crc)], [])
         crc = modbusCrc(send_dat)
         ba = crc.to_bytes(2, byteorder='little')
         send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])        
@@ -60,5 +62,18 @@ for test_adr in adr:
         print(f'<< {[hex(one) for one in resp]}')
         freq = int.from_bytes(resp[4:6],byteorder='little', signed=False)
         print(f'{freq/1000}')
+
+        send_dat = sum([[test_adr], [0x01], [fw_ver_code]], [])
+        crc = modbusCrc(send_dat)
+        ba = crc.to_bytes(2, byteorder='little')
+        send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])        
+        ser.write(send_packet)
+        resp = ser.read(128)
+
+        print(f'\n {test_adr}, {hex(test_adr)}: firmware version')
+        print(f'>> {[hex(one) for one in send_packet]}')
+        print(f'<< {[hex(one) for one in resp]}')
+        ver = resp[4:(4+4)].decode("utf-8")
+        print(f'{ver}')
     else:
         print(f'\r{test_adr}: none', end='')
