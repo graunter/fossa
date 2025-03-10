@@ -1,11 +1,46 @@
 import argparse
-import TermTk as ttk    # pip install TermTk
+import TermTk as ttk        # pip install TermTk
 from collections import defaultdict
+import sys
+import glob
+import serial               #pip install pyserial
 
 view_frames = defaultdict(list)
 
 
 g_current_frame = None
+
+
+
+def serial_ports():
+    """ Lists serial port names
+
+        :raises EnvironmentError:
+            On unsupported or unknown platforms
+        :returns:
+            A list of the serial ports available on the system
+    """
+
+    if sys.platform.startswith('win'):
+        ports = ['COM%s' % (i + 1) for i in range(256)]
+    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+        # this excludes your current terminal "/dev/tty"
+        ports = glob.glob('/dev/tty[A-Za-z]*')
+    elif sys.platform.startswith('darwin'):
+        ports = glob.glob('/dev/tty.*')
+    else:
+        raise EnvironmentError('Unsupported platform')
+
+    result = []
+    for port in ports:
+        try:
+            s = serial.Serial(port)
+            s.close()
+            result.append(port)
+        except (OSError, serial.SerialException):
+            pass
+
+    return result
 
 
 def switch_frame(next_frame: ttk.TTkFrame):
@@ -143,7 +178,57 @@ def BuildMainScreen(root=None):
     user_frame_layout.addWidget(ttk.TTkSpacer())
 
 
+   # Start "Connections"
+
+    mb_port_line = ttk.TTkFrame(border=False, title="Serial Port", visible=True)
+    mb_port_line.setLayout(ttk.TTkHBoxLayout())
+    mb_port_line.layout().addWidget(ttk.TTkSpacer())
+    mb_port_line.layout().addWidget(ttk.TTkLabel(text="Port", maxWidth = 30))
+    mb_port_line.layout().addWidget(ttk.TTkLineEdit(text="Type port name here.."))
+    mb_port_line.layout().addWidget(ttk.TTkButton(border=True, text="Open", height=5, minHeight=5, maxHeight = 5 ))
+    mb_port_line.addWidget(ttk.TTkSpacer())
+
+    mb_scan_line = ttk.TTkFrame(border=False, title="Found Ports", visible=True)
+    mb_scan_line.setLayout(ttk.TTkHBoxLayout())
+    mb_scan_line.layout().addWidget(ttk.TTkSpacer())
+    mb_scan_line.layout().addWidget(ttk.TTkLabel(text="Ports", maxWidth = 30))
+    mb_scan_line.layout().addWidget(ttk.TTkList( items=serial_ports(), border=True ) )
+    mb_scan_line.layout().addWidget(ttk.TTkButton(border=True, text="ReScan..", maxHeight = 5 ))
+    mb_scan_line.addWidget(ttk.TTkSpacer())
+
+    mb_speed_line = ttk.TTkFrame(border=False, title="Speed", visible=True)
+    mb_speed_line.setLayout(ttk.TTkHBoxLayout())
+    mb_speed_line.layout().addWidget(ttk.TTkSpacer())
+    mb_speed_line.layout().addWidget(ttk.TTkLabel(text="Speed", maxWidth = 30))    
+    mb_speed_line.layout().addWidget(ttk.TTkComboBox(text="Speed", list=['9600n1', '115200n1'], index=1))
+    mb_speed_line.layout().addWidget(ttk.TTkButton(border=True, text="Auto", maxHeight = 5 ))
+    mb_speed_line.addWidget(ttk.TTkSpacer())
+
+    mb_adr_line = ttk.TTkFrame(border=False, title="Address", visible=True)
+    mb_adr_line.setLayout(ttk.TTkHBoxLayout())
+    mb_adr_line.layout().addWidget(ttk.TTkSpacer())
+    mb_adr_line.layout().addWidget(ttk.TTkLabel(text="Address", maxWidth = 30))    
+    mb_adr_line.layout().addWidget(ttk.TTkLineEdit(text="0x01"))
+    mb_adr_line.layout().addWidget(ttk.TTkButton(border=True, text="Detect..", maxHeight = 5 ))
+    mb_adr_line.addWidget(ttk.TTkSpacer())
+
+    mb_frame = ttk.TTkFrame(border=True, visible=False)
+    opto_frame = ttk.TTkFrame(border=True, visible=False)
+
+    mb_frame.setLayout(ttk.TTkVBoxLayout())
+    mb_frame.layout().addWidget(mb_port_line)
+    mb_frame.layout().addWidget(mb_scan_line)    
+    mb_frame.layout().addWidget(mb_speed_line) 
+    mb_frame.layout().addWidget(mb_adr_line)     
+
+
+    con_tab = ttk.TTkTabWidget(border=False, visible=True)
+    con_tab.addTab(mb_frame, " ModBus ")
+    con_tab.addTab(opto_frame, " OptoPort ")    
+
     conn_frame = ttk.TTkFrame(border=True, title="Connections", visible=True)
+    conn_frame.setLayout(ttk.TTkVBoxLayout())
+    conn_frame.layout().addWidget(con_tab)
 
     login_frame_layout = ttk.TTkVBoxLayout()
     login_frame_layout.addWidget(user_frame)
