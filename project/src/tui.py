@@ -11,6 +11,7 @@ view_frames = defaultdict(list)
 g_current_frame = None
 g_mb_open_btn: ttk.TTkButton
 g_ser: serial.Serial
+g_mb_port_name: ttk.TTkLineEdit
 
 
 def serial_ports():
@@ -84,11 +85,14 @@ def modbusCrc(msg:str) -> int:
 def on_mb_open_btn():
     global g_mb_open_btn
     global g_ser
+    global g_mb_port_name
+
+    port_name = g_mb_port_name.text()
 
     try:
         if g_mb_open_btn.text() == 'Open':
             g_ser = serial.Serial(
-                port='COM11'
+                port=str(port_name)
                 , baudrate=9600
                 , bytesize=8
                 , parity='N'
@@ -145,6 +149,7 @@ def on_mb_open_btn():
 def BuildMainScreen(root=None):
     global g_current_frame
     global g_mb_open_btn
+    global g_mb_port_name
 
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
@@ -258,8 +263,9 @@ def BuildMainScreen(root=None):
     mb_port_line.setLayout(ttk.TTkHBoxLayout())
     mb_port_line.layout().addWidget(ttk.TTkSpacer())
     mb_port_line.layout().addWidget(ttk.TTkLabel(text="Port", maxWidth = 30))
-    mb_port_line.layout().addWidget(ttk.TTkLineEdit(text="Type port name here.."))
-    g_mb_open_btn = ttk.TTkButton(border=True, text="Open", height=5, minHeight=5, maxHeight = 5 )
+    g_mb_port_name= ttk.TTkLineEdit(text="Type port name here..")
+    mb_port_line.layout().addWidget(g_mb_port_name)
+    g_mb_open_btn = ttk.TTkButton(border=True, text="Open", minHeight=3, maxHeight = 5 )
     g_mb_open_btn.clicked.connect(on_mb_open_btn)
     mb_port_line.layout().addWidget(g_mb_open_btn)
     mb_port_line.addWidget(ttk.TTkSpacer())
@@ -268,7 +274,9 @@ def BuildMainScreen(root=None):
     mb_scan_line.setLayout(ttk.TTkHBoxLayout())
     mb_scan_line.layout().addWidget(ttk.TTkSpacer())
     mb_scan_line.layout().addWidget(ttk.TTkLabel(text="Ports", maxWidth = 30))
-    mb_scan_line.layout().addWidget(ttk.TTkList( items=serial_ports(), border=True ) )
+    g_mb_port_names = ttk.TTkList( items=serial_ports(), border=True )
+    g_mb_port_names.textClicked.connect(lambda s: g_mb_port_name.setText(s))
+    mb_scan_line.layout().addWidget( g_mb_port_names )
     mb_scan_line.layout().addWidget(ttk.TTkButton(border=True, text="ReScan..", maxHeight = 5 ))
     mb_scan_line.addWidget(ttk.TTkSpacer())
 
@@ -291,11 +299,12 @@ def BuildMainScreen(root=None):
     mb_frame = ttk.TTkFrame(border=True, visible=False)
     opto_frame = ttk.TTkFrame(border=True, visible=False)
 
-    mb_frame.setLayout(ttk.TTkVBoxLayout())
-    mb_frame.layout().addWidget(mb_port_line)
-    mb_frame.layout().addWidget(mb_scan_line)    
-    mb_frame.layout().addWidget(mb_speed_line) 
-    mb_frame.layout().addWidget(mb_adr_line)     
+    mb_frame.setLayout(ttk.TTkGridLayout())
+    mb_frame.layout().addWidget(mb_port_line, 1, 1)
+    mb_frame.layout().addWidget(ttk.TTkLabel(text="---", maxHeight = 1), 2, 1)
+    mb_frame.layout().addWidget(mb_scan_line, 3, 1)    
+    mb_frame.layout().addWidget(mb_speed_line, 4, 1) 
+    mb_frame.layout().addWidget(mb_adr_line, 5, 1)     
 
 
     con_tab = ttk.TTkTabWidget(border=False, visible=True)
