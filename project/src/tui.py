@@ -9,7 +9,8 @@ view_frames = defaultdict(list)
 
 
 g_current_frame = None
-
+g_mb_open_btn: ttk.TTkButton
+g_ser: serial.Serial
 
 
 def serial_ports():
@@ -68,9 +69,82 @@ def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkB
 
     return new_btn
 
+def modbusCrc(msg:str) -> int:
+    crc = 0xFFFF
+    for n in range(len(msg)):
+        crc ^= msg[n]
+        for i in range(8):
+            if crc & 1:
+                crc >>= 1
+                crc ^= 0xA001
+            else:
+                crc >>= 1
+    return crc
+
+def on_mb_open_btn():
+    global g_mb_open_btn
+    global g_ser
+
+    try:
+        if g_mb_open_btn.text() == 'Open':
+            g_ser = serial.Serial(
+                port='COM11'
+                , baudrate=9600
+                , bytesize=8
+                , parity='N'
+                , stopbits=1
+                , timeout=0.1
+                , rtscts=False
+                , dsrdtr=False
+            )
+        else:
+            g_ser.close()
+            g_mb_open_btn.setChecked(False)
+            g_mb_open_btn.setText('Open')
+            return
+    except serial.SerialException as e:
+        err_box = ttk.TTkMessageBox(
+                title="Serial port error",
+                text=format(e)
+            )
+        ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+        return
+        
+
+    test_adr = 0x17
+    open_srv_code = 0x08
+    access_lvl_user = 0
+    access_adm_user = 1
+    access_dev_user = 2
+
+    access_pwd_user = [255]*6
+
+    send_dat = sum([[test_adr], [open_srv_code], [access_lvl_user], list(access_pwd_user)], [])
+
+    crc = modbusCrc(send_dat)
+    ba = crc.to_bytes(2, byteorder='little')
+    send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
+    g_ser.write(send_packet)
+    
+    received = g_ser.read(128)
+    if received != b'':
+        bg_color = ttk.TTkColor.BG_GREEN
+    else:
+        bg_color = ttk.TTkColor.BG_RED
+        wrn_box = ttk.TTkMessageBox(
+                title="Warning",
+                text="Port is opened but no device was found on this address!"
+            )
+        ttk.TTkHelper.overlay(None, wrn_box, 50, 20, True)
+
+    text=ttk.TTkString(' Close ', bg_color)
+    g_mb_open_btn.setText(text)
+
+
 
 def BuildMainScreen(root=None):
     global g_current_frame
+    global g_mb_open_btn
 
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
@@ -185,7 +259,9 @@ def BuildMainScreen(root=None):
     mb_port_line.layout().addWidget(ttk.TTkSpacer())
     mb_port_line.layout().addWidget(ttk.TTkLabel(text="Port", maxWidth = 30))
     mb_port_line.layout().addWidget(ttk.TTkLineEdit(text="Type port name here.."))
-    mb_port_line.layout().addWidget(ttk.TTkButton(border=True, text="Open", height=5, minHeight=5, maxHeight = 5 ))
+    g_mb_open_btn = ttk.TTkButton(border=True, text="Open", height=5, minHeight=5, maxHeight = 5 )
+    g_mb_open_btn.clicked.connect(on_mb_open_btn)
+    mb_port_line.layout().addWidget(g_mb_open_btn)
     mb_port_line.addWidget(ttk.TTkSpacer())
 
     mb_scan_line = ttk.TTkFrame(border=False, title="Found Ports", visible=True)
@@ -200,7 +276,7 @@ def BuildMainScreen(root=None):
     mb_speed_line.setLayout(ttk.TTkHBoxLayout())
     mb_speed_line.layout().addWidget(ttk.TTkSpacer())
     mb_speed_line.layout().addWidget(ttk.TTkLabel(text="Speed", maxWidth = 30))    
-    mb_speed_line.layout().addWidget(ttk.TTkComboBox(text="Speed", list=['9600n1', '115200n1'], index=1))
+    mb_speed_line.layout().addWidget(ttk.TTkComboBox(text="Speed", list=['9600n1', '115200n1'], index=0))
     mb_speed_line.layout().addWidget(ttk.TTkButton(border=True, text="Auto", maxHeight = 5 ))
     mb_speed_line.addWidget(ttk.TTkSpacer())
 
