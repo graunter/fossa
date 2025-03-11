@@ -250,11 +250,13 @@ def BuildMainScreen(root=None):
     dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     dev_line.addWidget(ttk.TTkSpacer())
 
-    user_frame_layout.addWidget(ttk.TTkSpacer())
-    user_frame_layout.addWidget(usr_line)
-    user_frame_layout.addWidget(adm_line)
-    user_frame_layout.addWidget(dev_line)
-    user_frame_layout.addWidget(ttk.TTkSpacer())
+    user_frame.layout().addWidget(ttk.TTkSpacer())
+    user_frame.layout().addWidget(usr_line)
+    user_frame.layout().addWidget(ttk.TTkLabel(text="", maxHeight = 1))
+    user_frame.layout().addWidget(adm_line)
+    user_frame.layout().addWidget(ttk.TTkLabel(text="", maxHeight = 1))    
+    user_frame.layout().addWidget(dev_line)
+    user_frame.layout().addWidget(ttk.TTkSpacer())
 
 
    # Start "Connections"
@@ -301,7 +303,7 @@ def BuildMainScreen(root=None):
 
     mb_frame.setLayout(ttk.TTkGridLayout())
     mb_frame.layout().addWidget(mb_port_line, 1, 1)
-    mb_frame.layout().addWidget(ttk.TTkLabel(text="---", maxHeight = 1), 2, 1)
+    mb_frame.layout().addWidget(ttk.TTkLabel(text="", maxHeight = 1), 2, 1)
     mb_frame.layout().addWidget(mb_scan_line, 3, 1)    
     mb_frame.layout().addWidget(mb_speed_line, 4, 1) 
     mb_frame.layout().addWidget(mb_adr_line, 5, 1)     
