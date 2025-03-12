@@ -1,9 +1,12 @@
 import argparse
+from threading import Thread
+import time
 import TermTk as ttk        # pip install TermTk
 from collections import defaultdict
 import sys
 import glob
 import serial               #pip install pyserial
+from my_const import *
 
 view_frames = defaultdict(list)
 
@@ -12,6 +15,9 @@ g_current_frame = None
 g_mb_open_btn: ttk.TTkButton
 g_ser: serial.Serial
 g_mb_port_name: ttk.TTkLineEdit
+g_pause_visit_fl = True
+g_read_err_counter = 0
+g_pull_visit_thrd = None
 
 
 def serial_ports():
@@ -70,7 +76,7 @@ def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkB
 
     return new_btn
 
-def modbusCrc(msg:str) -> int:
+def calc_crc_16_ibm(msg:str) -> int:
     crc = 0xFFFF
     for n in range(len(msg)):
         crc ^= msg[n]
@@ -82,15 +88,39 @@ def modbusCrc(msg:str) -> int:
                 crc >>= 1
     return crc
 
+def close_serial():
+    global g_ser
+    global g_pause_visit_fl
+
+    g_ser.close()
+    g_mb_open_btn.setChecked(False)
+
+    bg_color = ttk.TTkColor.BG_WHITE
+    btn_text=ttk.TTkString(' Open ', bg_color)
+    g_mb_open_btn.setText(btn_text)
+
+    g_pause_visit_fl = True
+
+
+def create_packet_from_dat(send_dat: list) -> list:
+    crc = calc_crc_16_ibm(send_dat)
+    ba = crc.to_bytes(2, byteorder='little')
+    send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
+    return send_packet
+
+
 def on_mb_open_btn():
     global g_mb_open_btn
     global g_ser
     global g_mb_port_name
+    global g_pause_visit_fl
+    global g_read_err_counter
+    global g_pull_visit_thrd
 
     port_name = g_mb_port_name.text()
 
     try:
-        if g_mb_open_btn.text() == 'Open':
+        if g_mb_open_btn.text().toAscii() == 'Open':
             g_ser = serial.Serial(
                 port=str(port_name)
                 , baudrate=9600
@@ -102,9 +132,7 @@ def on_mb_open_btn():
                 , dsrdtr=False
             )
         else:
-            g_ser.close()
-            g_mb_open_btn.setChecked(False)
-            g_mb_open_btn.setText('Open')
+            close_serial()
             return
     except serial.SerialException as e:
         err_box = ttk.TTkMessageBox(
@@ -114,20 +142,8 @@ def on_mb_open_btn():
         ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
         return
         
-
-    test_adr = 0x17
-    open_srv_code = 0x08
-    access_lvl_user = 0
-    access_adm_user = 1
-    access_dev_user = 2
-
-    access_pwd_user = [255]*6
-
-    send_dat = sum([[test_adr], [open_srv_code], [access_lvl_user], list(access_pwd_user)], [])
-
-    crc = modbusCrc(send_dat)
-    ba = crc.to_bytes(2, byteorder='little')
-    send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
+    send_dat = sum([[TEST_ADR], [AOPEN_ID_CMD], [ACCESS_LVL_USER], list(ACCESS_PWD_USER)], [])
+    send_packet = create_packet_from_dat(send_dat)
     g_ser.write(send_packet)
     
     received = g_ser.read(128)
@@ -137,13 +153,56 @@ def on_mb_open_btn():
         bg_color = ttk.TTkColor.BG_RED
         wrn_box = ttk.TTkMessageBox(
                 title="Warning",
-                text="Port is opened but no device was found on this address!"
+                text="The port is open, but no devices were found at this address!"
             )
         ttk.TTkHelper.overlay(None, wrn_box, 50, 20, True)
 
     text=ttk.TTkString(' Close ', bg_color)
     g_mb_open_btn.setText(text)
+    
+    g_read_err_counter = 0
 
+
+    g_pause_visit_fl = False
+    if not g_pull_visit_thrd:
+        g_pull_visit_thrd = Thread(target=on_visit_pull)
+        g_pull_visit_thrd.daemon = True
+        g_pull_visit_thrd.start()
+
+
+
+def on_visit_pull():
+
+    send_dat = sum([[TEST_ADR], [GET_ID_CMD], [FREQ_ID_DATA]], [])
+    send_packet = create_packet_from_dat(send_dat)
+
+    while True:   
+        if not g_pause_visit_fl:
+            try:
+                g_ser.write(send_packet)
+                
+                resp = g_ser.read(128)
+                if resp != b'':
+                    freq = int.from_bytes(resp[4:6],byteorder='little', signed=False)
+                    ttk.TTkLog.debug(f"frequency: {freq/1000}")
+                else:
+                    inc_read_err_conter()
+
+            except serial.SerialException as e:
+                err_box = ttk.TTkMessageBox(
+                        title="Serial port error - it will be closed!",
+                        text=format(e)
+                    )
+                ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                close_serial()
+
+        time.sleep(1)   
+
+
+def inc_read_err_conter():
+    global g_read_err_counter
+
+    g_read_err_counter += 1
 
 
 def BuildMainScreen(root=None):
@@ -275,7 +334,7 @@ def BuildMainScreen(root=None):
     mb_scan_line = ttk.TTkFrame(border=False, title="Found Ports", visible=True)
     mb_scan_line.setLayout(ttk.TTkHBoxLayout())
     mb_scan_line.layout().addWidget(ttk.TTkSpacer())
-    mb_scan_line.layout().addWidget(ttk.TTkLabel(text="Ports", maxWidth = 30))
+    mb_scan_line.layout().addWidget(ttk.TTkLabel(text="System", maxWidth = 30))
     g_mb_port_names = ttk.TTkList( items=serial_ports(), border=True )
     g_mb_port_names.textClicked.connect(lambda s: g_mb_port_name.setText(s))
     mb_scan_line.layout().addWidget( g_mb_port_names )
