@@ -7,6 +7,8 @@ import sys
 import glob
 import serial               #pip install pyserial
 from my_const import *
+import data_req as req
+import pwr_meter as cnt
 
 view_frames = defaultdict(list)
 
@@ -18,6 +20,9 @@ g_mb_port_name: ttk.TTkLineEdit
 g_pause_visit_fl = True
 g_read_err_counter = 0
 g_pull_visit_thrd = None
+g_cnt_lst = []
+g_info_frame: ttk.TTkFrame
+g_hw_info_items: list[req.DataRequest]
 
 
 def serial_ports():
@@ -61,6 +66,14 @@ def switch_frame(next_frame: ttk.TTkFrame):
 
     g_current_frame = next_frame
 
+def upd_hw_info():
+    global g_hw_info_items
+
+    # for item in g_hw_info_items:
+    #     item.
+
+
+
 def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkButton:
     global g_current_frame
 
@@ -102,13 +115,6 @@ def close_serial():
     g_pause_visit_fl = True
 
 
-def create_packet_from_dat(send_dat: list) -> list:
-    crc = calc_crc_16_ibm(send_dat)
-    ba = crc.to_bytes(2, byteorder='little')
-    send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
-    return send_packet
-
-
 def on_mb_open_btn():
     global g_mb_open_btn
     global g_ser
@@ -116,6 +122,7 @@ def on_mb_open_btn():
     global g_pause_visit_fl
     global g_read_err_counter
     global g_pull_visit_thrd
+    global g_cnt_lst
 
     port_name = g_mb_port_name.text()
 
@@ -142,13 +149,14 @@ def on_mb_open_btn():
         ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
         return
         
-    send_dat = sum([[TEST_ADR], [AOPEN_ID_CMD], [ACCESS_LVL_USER], list(ACCESS_PWD_USER)], [])
-    send_packet = create_packet_from_dat(send_dat)
-    g_ser.write(send_packet)
-    
-    received = g_ser.read(128)
-    if received != b'':
+    if cnt.PwrMeter.check_resp_on_adr(TEST_ADR, g_ser) == True:
         bg_color = ttk.TTkColor.BG_GREEN
+
+        g_cnt_lst.append(cnt.PwrMeter(TEST_ADR, g_ser))
+
+        for item in g_hw_info_items:
+            item.set_device(g_cnt_lst[0])
+            item.upd_from_dev()
     else:
         bg_color = ttk.TTkColor.BG_RED
         wrn_box = ttk.TTkMessageBox(
@@ -174,7 +182,7 @@ def on_mb_open_btn():
 def on_visit_pull():
 
     send_dat = sum([[TEST_ADR], [GET_ID_CMD], [FREQ_ID_DATA]], [])
-    send_packet = create_packet_from_dat(send_dat)
+    send_packet = cnt.create_packet_from_dat(send_dat)
 
     while True:   
         if not g_pause_visit_fl:
@@ -209,6 +217,7 @@ def BuildMainScreen(root=None):
     global g_current_frame
     global g_mb_open_btn
     global g_mb_port_name
+    global g_info_frame
 
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
@@ -223,12 +232,14 @@ def BuildMainScreen(root=None):
 
     # Frames for used data
     login_frame = ttk.TTkFrame(border=True, title="Login", visible=True)
+    g_info_frame = build_hw_info_frame()
     config_frame = ttk.TTkFrame(border=True, title="Config", visible=False)
     service_frame = ttk.TTkFrame(border=True, title="Service", visible=False)
     view_frame = ttk.TTkFrame(border=True, title="View", visible=False)
 
 
     top_btn_frame.addWidget(create_btn_for_frame(True, login_frame))
+    top_btn_frame.addWidget(create_btn_for_frame(False, g_info_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, config_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, service_frame))    
     top_btn_frame.addWidget(create_btn_for_frame(False, view_frame))
@@ -260,10 +271,8 @@ def BuildMainScreen(root=None):
     mframe_layout = ttk.TTkVBoxLayout()
     main_frame.setLayout(mframe_layout)
 
-    mframe_layout.addWidget(login_frame)
-    mframe_layout.addWidget(config_frame)
-    mframe_layout.addWidget(service_frame)
-    mframe_layout.addWidget(view_frame)
+    mframe_layout.addWidgets([login_frame, g_info_frame, config_frame, service_frame, view_frame])
+
     
     log_wnd = ttk.TTkWindow(parent=main_frame, pos = (15,4), size=(87,20), title="Log Window", flags=0, visible=False)
     log_wnd.setLayout(ttk.TTkHBoxLayout())
@@ -271,7 +280,7 @@ def BuildMainScreen(root=None):
     #login__layout.addWidget(log_viever)
 
     # Build "Login"
-    user_frame = ttk.TTkFrame(border=True, title="Users", visible=True)
+    user_frame = ttk.TTkFrame(border=True, title="Authentication", visible=True)
     user_frame.setLayout(user_frame_layout := ttk.TTkVBoxLayout())
     usr_line = ttk.TTkFrame(border=False, title="User input", visible=True)
     usr_layout = ttk.TTkHBoxLayout()
@@ -382,6 +391,40 @@ def BuildMainScreen(root=None):
     login_frame.setLayout(login_frame_layout)
 
     
+def build_hw_info_frame():
+    global g_hw_info_items
+
+    info_frame = ttk.TTkFrame(border=True, title="HW Info", visible=False)
+
+    info_frame.setLayout(ttk.TTkGridLayout())
+
+    line_cnt = 0
+    name_column = 0
+    data_column = 1
+    units_column = 2
+
+    def_name_w = 30
+    def_data_w = 20
+    def_unit_w = 20
+
+    def_name_size = 20
+    def_data_size = 20
+    def_unit_size = 30
+
+    g_hw_info_items = [
+          req.DataRequest(label="Model name")
+        , req.DataRequest(label="Serial number")
+        , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy")
+    ]
+
+    info_frame.setLayout(ttk.TTkVBoxLayout())
+    for item in g_hw_info_items:
+        info_frame.layout().addWidget(item)
+
+    info_frame.layout().addWidget(ttk.TTkSpacer())
+
+
+    return info_frame
 
 
 def main():

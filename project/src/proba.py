@@ -14,7 +14,7 @@ def modbusCrc(msg:str) -> int:
                 crc >>= 1
     return crc
 
-ser = serial.Serial(port='COM11', baudrate=9600, bytesize=8, parity='N', 
+ser = serial.Serial(port='COM15', baudrate=9600, bytesize=8, parity='N', 
 stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
 
 adr = range(22, 25)

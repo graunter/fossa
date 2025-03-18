@@ -7,7 +7,7 @@ import logging
 import json
 from threading import Thread
 from timeit import default_timer as timer
-from counter import Counter
+from project.src.pwr_meter import PwrMeter
 import serial   #pip install pyserial
 
 
@@ -37,9 +37,9 @@ class Fossa:
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
         ser = serial.Serial(port='COM11', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
-        cnt = Counter(23, ser)   
-        ver_val, ver_str = cnt.read_version()
-        logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
+        cnt = PwrMeter(23, ser)   
+        #ver_val, ver_str = cnt.read_version()
+        #logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
 
     def on_connect(self, client, userdata, connect_flags, reason_code, properties):
         # Подписка при подключении означает, что если было потеряно соединение
