@@ -23,6 +23,7 @@ g_pull_visit_thrd = None
 g_cnt_lst = []
 g_info_frame: ttk.TTkFrame
 g_hw_info_items: list[req.DataRequest]
+g_mb_adr_ledit: ttk.TTkLineEdit
 
 
 def serial_ports():
@@ -148,11 +149,13 @@ def on_mb_open_btn():
             )
         ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
         return
+    
+    mb_adr = int(g_mb_adr_ledit.text().toAscii())
         
-    if mtr.PwrMeter.check_resp_on_adr(TEST_ADR, g_ser) == True:
+    if mtr.PwrMeter.check_resp_on_adr(mb_adr, g_ser) == True:
         bg_color = ttk.TTkColor.BG_GREEN
 
-        g_cnt_lst.append(mtr.PwrMeter(TEST_ADR, g_ser))
+        g_cnt_lst.append(mtr.PwrMeter(mb_adr, g_ser))
 
         for item in g_hw_info_items:
             item.set_device(g_cnt_lst[0])
@@ -218,6 +221,7 @@ def BuildMainScreen(root=None):
     global g_mb_open_btn
     global g_mb_port_name
     global g_info_frame
+    global g_mb_adr_ledit
 
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
@@ -361,8 +365,9 @@ def BuildMainScreen(root=None):
     mb_adr_line = ttk.TTkFrame(border=False, title="Address", visible=True)
     mb_adr_line.setLayout(ttk.TTkHBoxLayout())
     mb_adr_line.layout().addWidget(ttk.TTkSpacer())
-    mb_adr_line.layout().addWidget(ttk.TTkLabel(text="Address", maxWidth = 30))    
-    mb_adr_line.layout().addWidget(ttk.TTkLineEdit(text="0x01"))
+    mb_adr_line.layout().addWidget(ttk.TTkLabel(text="Address", maxWidth = 30))   
+    g_mb_adr_ledit = ttk.TTkLineEdit(text=str(TEST_ADR)) 
+    mb_adr_line.layout().addWidget(g_mb_adr_ledit)
     mb_adr_line.layout().addWidget(ttk.TTkButton(border=True, text="Detect..", maxHeight = 5 ))
     mb_adr_line.addWidget(ttk.TTkSpacer())
 
