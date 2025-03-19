@@ -96,26 +96,26 @@ class PwrMeter:
         
         Msg = namedtuple("Msg", "id, len")
 
-        trans_tbl = { 
+        trans_str_tbl = { 
               StrData.model: Msg(mconst.MODEL_ID_DATA, 16)  
             , StrData.fw_ver: Msg(mconst.FW_ID_DATA, 4)
         }
 
-        if item not in trans_tbl.keys():
+        if item not in trans_str_tbl.keys():
             # TODO:
             pass
         
-        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [trans_tbl[item].id] ], [])
+        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [trans_str_tbl[item].id] ], [])
         send_packet = create_packet_from_dat(send_dat)
         self.port.write(send_packet)
-        #TODO: read len should d be calculated
+        #TODO: read len should be calculated
         resp = self.port.read(128)
 
         txt = "NA"
 
         if resp != b'':
             data_start_pos = 4
-            data_end_pos = data_start_pos + trans_tbl[item].len
+            data_end_pos = data_start_pos + trans_str_tbl[item].len
             txt = resp[data_start_pos:data_end_pos].decode("ansi").rstrip('\0')
             # re.sub('\W+', '', txt)
         else:

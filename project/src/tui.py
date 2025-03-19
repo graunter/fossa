@@ -8,7 +8,7 @@ import glob
 import serial               #pip install pyserial
 from my_const import *
 import data_req as req
-import pwr_meter as cnt
+import pwr_meter as mtr
 
 view_frames = defaultdict(list)
 
@@ -127,7 +127,7 @@ def on_mb_open_btn():
     port_name = g_mb_port_name.text()
 
     try:
-        if g_mb_open_btn.text().toAscii() == 'Open':
+        if 'Open' in g_mb_open_btn.text().toAscii():
             g_ser = serial.Serial(
                 port=str(port_name)
                 , baudrate=9600
@@ -149,10 +149,10 @@ def on_mb_open_btn():
         ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
         return
         
-    if cnt.PwrMeter.check_resp_on_adr(TEST_ADR, g_ser) == True:
+    if mtr.PwrMeter.check_resp_on_adr(TEST_ADR, g_ser) == True:
         bg_color = ttk.TTkColor.BG_GREEN
 
-        g_cnt_lst.append(cnt.PwrMeter(TEST_ADR, g_ser))
+        g_cnt_lst.append(mtr.PwrMeter(TEST_ADR, g_ser))
 
         for item in g_hw_info_items:
             item.set_device(g_cnt_lst[0])
@@ -182,7 +182,7 @@ def on_mb_open_btn():
 def on_visit_pull():
 
     send_dat = sum([[TEST_ADR], [GET_ID_CMD], [FREQ_ID_DATA]], [])
-    send_packet = cnt.create_packet_from_dat(send_dat)
+    send_packet = mtr.create_packet_from_dat(send_dat)
 
     while True:   
         if not g_pause_visit_fl:
@@ -393,6 +393,7 @@ def BuildMainScreen(root=None):
     
 def build_hw_info_frame():
     global g_hw_info_items
+    global g_cnt_lst
 
     info_frame = ttk.TTkFrame(border=True, title="HW Info", visible=False)
 
@@ -412,8 +413,8 @@ def build_hw_info_frame():
     def_unit_size = 30
 
     g_hw_info_items = [
-          req.DataRequest(label="Model name")
-        , req.DataRequest(label="Serial number")
+          req.DataRequest(label="Model name", request=lambda dev: dev.rd_str(mtr.StrData.model))
+        , req.DataRequest(label="Serial number", request=lambda dev: dev.rd_str(mtr.StrData.fw_ver))
         , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy")
     ]
 

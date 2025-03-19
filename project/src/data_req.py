@@ -21,6 +21,7 @@ class DataRequest(ttk.TTkFrame):
         self.data_txt = data
         self.unit_txt = unit
         self.device = None
+        self.req = request
         
         start_column = 0
         name_column = start_column
@@ -48,6 +49,7 @@ class DataRequest(ttk.TTkFrame):
         self.device = dev
 
     def upd_from_dev(self):
-        txt = self.device.rd_str(mtr.StrData.model)
-        self.data_item.setText(txt)
+        if self.req:
+            txt = self.req(self.device)
+            self.data_item.setText(txt)
         
