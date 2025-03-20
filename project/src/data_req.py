@@ -28,11 +28,11 @@ class DataRequest(ttk.TTkFrame):
         data_column = name_column +1
         units_column = data_column +1
 
-        def_name_w = 20
+        def_name_w = 25
         def_data_w = 20
         def_unit_w = 20
 
-        def_name_size = 20
+        def_name_size = 25
         def_data_size = 20
         def_unit_size = 30
 

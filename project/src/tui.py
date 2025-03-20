@@ -160,6 +160,11 @@ def on_mb_open_btn():
         for item in g_hw_info_items:
             item.set_device(g_cnt_lst[0])
             item.upd_from_dev()
+
+        for item in g_view_items:
+            item.set_device(g_cnt_lst[0])
+            item.upd_from_dev()
+
     else:
         bg_color = ttk.TTkColor.BG_RED
         wrn_box = ttk.TTkMessageBox(
@@ -190,14 +195,8 @@ def on_visit_pull():
     while True:   
         if not g_pause_visit_fl:
             try:
-                g_ser.write(send_packet)
-                
-                resp = g_ser.read(128)
-                if resp != b'':
-                    freq = int.from_bytes(resp[4:6],byteorder='little', signed=False)
-                    ttk.TTkLog.debug(f"frequency: {freq/1000}")
-                else:
-                    inc_read_err_conter()
+                for item in g_view_items:
+                    item.upd_from_dev()
 
             except serial.SerialException as e:
                 err_box = ttk.TTkMessageBox(
@@ -222,6 +221,7 @@ def BuildMainScreen(root=None):
     global g_mb_port_name
     global g_info_frame
     global g_mb_adr_ledit
+    global g_view_frame
 
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
@@ -239,14 +239,14 @@ def BuildMainScreen(root=None):
     g_info_frame = build_hw_info_frame()
     config_frame = ttk.TTkFrame(border=True, title="Config", visible=False)
     service_frame = ttk.TTkFrame(border=True, title="Service", visible=False)
-    view_frame = ttk.TTkFrame(border=True, title="View", visible=False)
-
+    g_view_frame = build_view_frame()
 
     top_btn_frame.addWidget(create_btn_for_frame(True, login_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, g_info_frame))
+    top_btn_frame.addWidget(create_btn_for_frame(False, g_view_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, config_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, service_frame))    
-    top_btn_frame.addWidget(create_btn_for_frame(False, view_frame))
+
 
 
     btn_layout.addWidget(top_btn_frame, 1, 0)
@@ -275,7 +275,7 @@ def BuildMainScreen(root=None):
     mframe_layout = ttk.TTkVBoxLayout()
     main_frame.setLayout(mframe_layout)
 
-    mframe_layout.addWidgets([login_frame, g_info_frame, config_frame, service_frame, view_frame])
+    mframe_layout.addWidgets([login_frame, g_info_frame, g_view_frame, config_frame, service_frame])
 
     
     log_wnd = ttk.TTkWindow(parent=main_frame, pos = (15,4), size=(87,20), title="Log Window", flags=0, visible=False)
@@ -418,8 +418,8 @@ def build_hw_info_frame():
     def_unit_size = 30
 
     g_hw_info_items = [
-          req.DataRequest(label="Model name", request=lambda dev: dev.rd_str(mtr.StrData.model))
-        , req.DataRequest(label="Serial number", request=lambda dev: dev.rd_str(mtr.StrData.fw_ver))
+          req.DataRequest(label="Model name", request=lambda dev: dev.rd_str(mtr.ReqId.model))
+        , req.DataRequest(label="Serial number", request=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
         , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy")
     ]
 
@@ -431,6 +431,35 @@ def build_hw_info_frame():
 
 
     return info_frame
+
+def build_view_frame():
+    global g_view_frame
+    global g_view_items
+
+    g_view_frame = ttk.TTkFrame(border=True, title="View", visible=False)
+
+    g_view_frame.setLayout(ttk.TTkGridLayout())
+
+    line_cnt = 0
+    name_column = 0
+    data_column = 1
+    units_column = 2
+
+    g_view_items = [
+          req.DataRequest(label="A Phase voltage A", unit="V", request=lambda dev: dev.rd_str(mtr.ReqId.UPhA))
+        , req.DataRequest(label="A Phase current A", unit="A", request=lambda dev: dev.rd_str(mtr.ReqId.IPhA))
+        , req.DataRequest(label="A Phase active power", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.ActPwrA))
+        , req.DataRequest(label="Active in energy", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.Active_imp_e))        
+    ]
+
+    g_view_frame.setLayout(ttk.TTkVBoxLayout())
+    for item in g_view_items:
+        g_view_frame.layout().addWidget(item)
+
+    g_view_frame.layout().addWidget(ttk.TTkSpacer())
+
+
+    return g_view_frame
 
 
 def main():

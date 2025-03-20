@@ -1,7 +1,7 @@
 import re
 import serial   #pip install pyserial
 from textwrap import wrap
-from enum import Enum
+from enum import auto, Enum
 import my_const as mconst
 from collections import namedtuple
 
@@ -51,16 +51,89 @@ class Data:
     def set(self, ObjUID, val: bytearray):
         pass
 
-class StrData(Enum):
-    model = 1
-    fw_ver = 2
+# class StrData(Enum):
+class ReqId(Enum):
+    model = auto()
+    fw_ver = auto()
+
+#class PacDecData(Enum):
+    Active_imp_e = auto()
+    Active_imp_e_1  = auto()
+    Active_imp_e_2 = auto()
+    Active_imp_e_3 = auto()
+    Active_imp_e_4 = auto()
+    Active_imp_e_5 = auto()
+    Active_imp_e_6 = auto()
+    Active_imp_e_7 = auto()
+    Active_imp_e_8 = auto()
+    ReAct_imp_e = auto()
+    ReAct_imp_e_1  = auto()
+    ReAct_imp_e_2 = auto()
+    ReAct_imp_e_3 = auto()
+    ReAct_imp_e_4 = auto()
+    ReAct_imp_e_5 = auto()
+    ReAct_imp_e_6 = auto()
+    ReAct_imp_e_7 = auto()
+    ReAct_imp_e_8 = auto()
+        
+    Active_exp_e = auto()
+    Active_exp_e_1  = auto()
+    Active_exp_e_2 = auto()
+    Active_exp_e_3 = auto()
+    Active_exp_e_4 = auto()
+    Active_exp_e_5 = auto()
+    Active_exp_e_6 = auto()
+    Active_exp_e_7 = auto()
+    Active_exp_e_8 = auto()
+    ReAct_exp_e = auto()
+    ReAct_exp_e_1  = auto()
+    ReAct_exp_e_2 = auto()
+    ReAct_exp_e_3 = auto()
+    ReAct_exp_e_4 = auto()
+    ReAct_exp_e_5 = auto()
+    ReAct_exp_e_6 = auto()
+    ReAct_exp_e_7 = auto()
+    ReAct_exp_e_8 = auto()
+
+#class WordData(Enum):
+    ActPwrA = auto()
+    ActPwrB = auto()
+    ActPwrC = auto()
+    ActPwr = auto()
+    ReActPwrA = auto()
+    ReActPwrB = auto()
+    ReActPwrC = auto()
+    ReActPwr = auto()
+    PwrA = auto()
+    PwrB = auto()
+    PwrC = auto()
+    Pwr = auto()
+
+#class CatenaData(Enum):
+    UPhA = auto()
+    UPhB = auto()
+    UPhC = auto()
+    IPhA = auto()
+    IPhB = auto()
+    IPhC = auto()       
+
+class DType(Enum):
+    StrData = auto() 
+    PacDecData = auto() 
+    DigitData = auto() 
+
+
 
         
 class PwrMeter:
+
+
+
     def __init__(self, adr: int, port: serial.Serial):
         self.adr = adr
         self.port = port
         self.err_cnt = 0
+
 
     def link(self, port: serial.Serial):
         self.port = port
@@ -85,7 +158,7 @@ class PwrMeter:
         return is_present
 
 
-    def rd_str(self, item: StrData):
+    def rd_str(self, item: ReqId):
 
         # TODO: may be exeption will be better?
         if not self.port:
@@ -94,18 +167,32 @@ class PwrMeter:
         if not self.port.is_open:
             return 0, "0"    
         
-        Msg = namedtuple("Msg", "id, len")
+        Msg = namedtuple("Msg", "dtype id len scale", defaults=(None, None, None, 1))
 
         trans_str_tbl = { 
-              StrData.model: Msg(mconst.MODEL_ID_DATA, 16)  
-            , StrData.fw_ver: Msg(mconst.FW_ID_DATA, 4)
+              ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 16)  
+            , ReqId.fw_ver: Msg(DType.StrData,mconst.FW_ID_DATA, 4)
+            , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
+
+            , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
+
+            , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000)  
+
+            , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)      
+
+            , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.APA_ID_DATA, 4, 3)   
+
+                              
+
         }
 
         if item not in trans_str_tbl.keys():
             # TODO:
             pass
+
+        this_msg = trans_str_tbl[item]
         
-        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [trans_str_tbl[item].id] ], [])
+        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [this_msg.id] ], [])
         send_packet = create_packet_from_dat(send_dat)
         self.port.write(send_packet)
         #TODO: read len should be calculated
@@ -115,9 +202,22 @@ class PwrMeter:
 
         if resp != b'':
             data_start_pos = 4
-            data_end_pos = data_start_pos + trans_str_tbl[item].len
-            txt = resp[data_start_pos:data_end_pos].decode("ansi").rstrip('\0')
-            # re.sub('\W+', '', txt)
+            data_end_pos = data_start_pos + this_msg.len
+            txt = ""
+            if this_msg.dtype == DType.StrData:
+                txt = resp[data_start_pos:data_end_pos].decode("ansi").rstrip('\0')
+            elif this_msg.dtype == DType.DigitData:
+                digit = resp[data_start_pos:data_end_pos]
+                in_digit = int.from_bytes(digit, byteorder='little', signed=True)
+                in_real = in_digit / this_msg.scale
+                txt = str(in_real)
+            elif this_msg.dtype == DType.PacDecData:
+                digit = resp[data_start_pos:data_end_pos]
+                in_digit = digit.hex().removesuffix('F')
+                in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
+                txt = str(in_real)                
+            else:
+                txt = "Err"
         else:
             self.err_cnt += 1
 
