@@ -1,7 +1,7 @@
 import argparse
 from threading import Thread
 import time
-import TermTk as ttk        # pip install TermTk
+import TermTk as ttk        # pip install pyTermTk
 from collections import defaultdict
 import sys
 import glob
@@ -67,11 +67,18 @@ def switch_frame(next_frame: ttk.TTkFrame):
 
     g_current_frame = next_frame
 
-def upd_hw_info():
+
+def init_hw_info_items(dev):
     global g_hw_info_items
 
-    # for item in g_hw_info_items:
-    #     item.
+    for item in g_hw_info_items:
+        item.set_device(dev)
+
+def upd_hw_info_items():
+    global g_hw_info_items
+
+    for item in g_hw_info_items:
+        item.upd_from_dev()
 
 
 
@@ -157,9 +164,8 @@ def on_mb_open_btn():
 
         g_cnt_lst.append(mtr.PwrMeter(mb_adr, g_ser))
 
-        for item in g_hw_info_items:
-            item.set_device(g_cnt_lst[0])
-            item.upd_from_dev()
+        init_hw_info_items(g_cnt_lst[0])
+        upd_hw_info_items()
 
         for item in g_view_items:
             item.set_device(g_cnt_lst[0])
@@ -189,8 +195,6 @@ def on_mb_open_btn():
 
 def on_visit_pull():
 
-    send_dat = sum([[TEST_ADR], [GET_ID_CMD], [FREQ_ID_DATA]], [])
-    send_packet = mtr.create_packet_from_dat(send_dat)
 
     while True:   
         if not g_pause_visit_fl:
@@ -209,13 +213,9 @@ def on_visit_pull():
         time.sleep(1)   
 
 
-def inc_read_err_conter():
-    global g_read_err_counter
-
-    g_read_err_counter += 1
 
 
-def BuildMainScreen(root=None):
+def build_main_screen(root=None):
     global g_current_frame
     global g_mb_open_btn
     global g_mb_port_name
@@ -286,14 +286,16 @@ def BuildMainScreen(root=None):
     # Build "Login"
     user_frame = ttk.TTkFrame(border=True, title="Authentication", visible=True)
     user_frame.setLayout(user_frame_layout := ttk.TTkVBoxLayout())
+
     usr_line = ttk.TTkFrame(border=False, title="User input", visible=True)
     usr_layout = ttk.TTkHBoxLayout()
     usr_line.setLayout(usr_layout)
     usr_line.addWidget(ttk.TTkSpacer())
-    usr_line.addWidget(r1 := ttk.TTkRadioButton(text="User", radiogroup="log_names", maxWidth = 3, checked=True))
-    usr_line.addWidget(ttk.TTkLabel(text="User", size=(10,1), maxWidth = 30))
+    usr_line.addWidget(r1 := ttk.TTkRadioButton(text="User", radiogroup="log_names", maxWidth = 12, checked=True))
+    #usr_line.addWidget(ttk.TTkLabel(text="User", size=(10,1), maxWidth = 20))
     #usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
-    usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF"))
+    usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", size=(35,1), minWidth = 35, maxWidth = 35))
+    usr_line.addWidget(ttk.TTkLabel(text=" "))
     usr_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     usr_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     usr_line.addWidget(ttk.TTkSpacer())
@@ -302,10 +304,11 @@ def BuildMainScreen(root=None):
     adm_layout = ttk.TTkHBoxLayout()
     adm_line.setLayout(adm_layout)
     adm_line.addWidget(ttk.TTkSpacer())
-    adm_line.addWidget(r1 := ttk.TTkRadioButton(text="Admin", radiogroup="log_names", maxWidth = 3))
-    adm_line.addWidget(ttk.TTkLabel(text="Admin", size=(10,1), maxWidth = 30))
+    adm_line.addWidget(r1 := ttk.TTkRadioButton(text="Admin", radiogroup="log_names", maxWidth = 12))
+    #adm_line.addWidget(ttk.TTkLabel(text="Admin", size=(10,1), maxWidth = 20))
     #adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
-    adm_line.addWidget(ttk.TTkLineEdit(text=""))
+    adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", size=(35,1), minWidth = 35, maxWidth = 35))
+    adm_line.addWidget(ttk.TTkLabel(text=" "))
     adm_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     adm_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     adm_line.addWidget(ttk.TTkSpacer())
@@ -314,10 +317,11 @@ def BuildMainScreen(root=None):
     dev_layout = ttk.TTkHBoxLayout()
     dev_line.setLayout(dev_layout)
     dev_line.addWidget(ttk.TTkSpacer())
-    dev_line.addWidget(r1 := ttk.TTkRadioButton(text="Developer", radiogroup="log_names", maxWidth = 3))
-    dev_line.addWidget(ttk.TTkLabel(text="Developer", size=(10,1), maxWidth = 30))
-    #adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
-    dev_line.addWidget(ttk.TTkLineEdit(text=""))
+    dev_line.addWidget(r1 := ttk.TTkRadioButton(text="Developer", radiogroup="log_names", maxWidth = 12))
+    #dev_line.addWidget(ttk.TTkLabel(text="Developer", size=(10,1), maxWidth = 20))
+    #dev_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
+    dev_line.addWidget(ttk.TTkLineEdit(text="", size=(35,1), minWidth = 35, maxWidth = 35))
+    dev_line.addWidget(ttk.TTkLabel(text=" "))
     dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     dev_line.addWidget(ttk.TTkSpacer())
@@ -419,8 +423,11 @@ def build_hw_info_frame():
 
     g_hw_info_items = [
           req.DataRequest(label="Model name", request=lambda dev: dev.rd_str(mtr.ReqId.model))
-        , req.DataRequest(label="Serial number", request=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
-        , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy")
+        , req.DataRequest(label="Serial number", request=lambda dev: dev.rd_str(mtr.ReqId.serial_num))
+        , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", request=lambda dev: dev.rd_str(mtr.ReqId.prod_date))
+        , req.DataRequest(label="FW version", request=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
+        , req.DataRequest(label="Current scale", request=lambda dev: dev.rd_str(mtr.ReqId.i_scale))
+        , req.DataRequest(label="Voltage scale", request=lambda dev: dev.rd_str(mtr.ReqId.v_scale))        
     ]
 
     info_frame.setLayout(ttk.TTkVBoxLayout())
@@ -446,10 +453,14 @@ def build_view_frame():
     units_column = 2
 
     g_view_items = [
-          req.DataRequest(label="A Phase voltage A", unit="V", request=lambda dev: dev.rd_str(mtr.ReqId.UPhA))
+        req.DataRequest(label="RTC", unit="ss.mm.hh.dow.dd.mm.yyyy", request=lambda dev: dev.rd_str(mtr.ReqId.rtc))
+        , req.DataRequest(label="Rate", request=lambda dev: dev.rd_str(mtr.ReqId.cur_rate))
+        , req.DataRequest(label="A Phase voltage A", unit="V", request=lambda dev: dev.rd_str(mtr.ReqId.UPhA))
         , req.DataRequest(label="A Phase current A", unit="A", request=lambda dev: dev.rd_str(mtr.ReqId.IPhA))
         , req.DataRequest(label="A Phase active power", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.ActPwrA))
-        , req.DataRequest(label="Active in energy", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.Active_imp_e))        
+        , req.DataRequest(label="Active power summary", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.ActPwr))
+        , req.DataRequest(label="Active in energy sum", unit="kW*h", request=lambda dev: dev.rd_str(mtr.ReqId.Active_imp_e))  
+
     ]
 
     g_view_frame.setLayout(ttk.TTkVBoxLayout())
@@ -480,7 +491,7 @@ def main():
         MainWnd = root
         border = False
 
-    BuildMainScreen(MainWnd)
+    build_main_screen(MainWnd)
     
     root.mainloop()
 

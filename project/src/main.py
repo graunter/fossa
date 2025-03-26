@@ -37,7 +37,7 @@ class Fossa:
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
         ser = serial.Serial(port='COM11', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
-        cnt = PwrMeter(23, ser)   
+        cnt = PwrMeter(21, ser)   
         #ver_val, ver_str = cnt.read_version()
         #logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
 

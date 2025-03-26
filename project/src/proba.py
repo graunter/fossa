@@ -14,10 +14,10 @@ def modbusCrc(msg:str) -> int:
                 crc >>= 1
     return crc
 
-ser = serial.Serial(port='COM15', baudrate=9600, bytesize=8, parity='N', 
+ser = serial.Serial(port='/dev/ttyUSB0', baudrate=9600, bytesize=8, parity='N', 
 stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
 
-adr = range(22, 25)
+adr = range(1, 50)
 prj_ver_code = 0x00
 open_srv_code = 0x08
 freq_code = 0x09
