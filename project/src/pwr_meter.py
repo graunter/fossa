@@ -278,14 +278,16 @@ class PwrMeter:
                 in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
                 txt = str(in_real)   
             elif this_msg.dtype == DType.RtcData:
-                seconds = str(in_dat[0])
-                minutes = str(in_dat[1])
-                hours = str(in_dat[2])
-                dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+                seconds = str(in_dat[0]).zfill(2)
+                minutes = str(in_dat[1]).zfill(2)
+                hours = str(in_dat[2]).zfill(2)
+                dow = ['ERR', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
                 doweek_idx = in_dat[3]
                 doweek = str(dow[doweek_idx]) if doweek_idx < len(dow) else 'Err'
-                days = str(in_dat[4])
-                months = str(in_dat[5])
+                days = str(in_dat[4]).zfill(2)
+                months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+                months_idx = in_dat[5]
+                months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
                 years = str(2000 + in_dat[6])
                 txt = ':'.join([seconds, minutes, hours, doweek, days, months, years])
             elif this_msg.dtype == DType.VScaleData:

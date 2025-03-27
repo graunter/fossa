@@ -9,6 +9,7 @@ import serial               #pip install pyserial
 from my_const import *
 import data_req as req
 import pwr_meter as mtr
+from pwr_meter import ReqId
 
 view_frames = defaultdict(list)
 
@@ -422,12 +423,12 @@ def build_hw_info_frame():
     def_unit_size = 30
 
     g_hw_info_items = [
-          req.DataRequest(label="Model name", request=lambda dev: dev.rd_str(mtr.ReqId.model))
-        , req.DataRequest(label="Serial number", request=lambda dev: dev.rd_str(mtr.ReqId.serial_num))
-        , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", request=lambda dev: dev.rd_str(mtr.ReqId.prod_date))
-        , req.DataRequest(label="FW version", request=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
-        , req.DataRequest(label="Current scale", request=lambda dev: dev.rd_str(mtr.ReqId.i_scale))
-        , req.DataRequest(label="Voltage scale", request=lambda dev: dev.rd_str(mtr.ReqId.v_scale))        
+          req.DataRequest(label="Model name", req=lambda dev: dev.rd_str(mtr.ReqId.model))
+        , req.DataRequest(label="Serial number", req=lambda dev: dev.rd_str(mtr.ReqId.serial_num))
+        , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(mtr.ReqId.prod_date))
+        , req.DataRequest(label="FW version", req=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
+        , req.DataRequest(label="Current scale", req=lambda dev: dev.rd_str(mtr.ReqId.i_scale))
+        , req.DataRequest(label="Voltage scale", req=lambda dev: dev.rd_str(mtr.ReqId.v_scale))        
     ]
 
     info_frame.setLayout(ttk.TTkVBoxLayout())
@@ -438,6 +439,9 @@ def build_hw_info_frame():
 
 
     return info_frame
+
+def rh(dev, Id: ReqId):
+    return lambda dev: dev.rd_str(Id)
 
 def build_view_frame():
     global g_view_frame
@@ -453,13 +457,13 @@ def build_view_frame():
     units_column = 2
 
     g_view_items = [
-        req.DataRequest(label="RTC", unit="ss.mm.hh.dow.dd.mm.yyyy", request=lambda dev: dev.rd_str(mtr.ReqId.rtc))
-        , req.DataRequest(label="Rate", request=lambda dev: dev.rd_str(mtr.ReqId.cur_rate))
-        , req.DataRequest(label="A Phase voltage A", unit="V", request=lambda dev: dev.rd_str(mtr.ReqId.UPhA))
-        , req.DataRequest(label="A Phase current A", unit="A", request=lambda dev: dev.rd_str(mtr.ReqId.IPhA))
-        , req.DataRequest(label="A Phase active power", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.ActPwrA))
-        , req.DataRequest(label="Active power summary", unit="W", request=lambda dev: dev.rd_str(mtr.ReqId.ActPwr))
-        , req.DataRequest(label="Active in energy sum", unit="kW*h", request=lambda dev: dev.rd_str(mtr.ReqId.Active_imp_e))  
+        req.DataRequest(label="RTC", req=lambda dev: dev.rd_str(ReqId.rtc))
+        , req.DataRequest(label="Rate", req=lambda dev: dev.rd_str(ReqId.cur_rate))
+        , req.DataRequest(label="A Phase voltage A", unit="V", req=lambda dev: dev.rd_str(ReqId.UPhA))
+        , req.DataRequest(label="A Phase current A", unit="A", req=lambda dev: dev.rd_str(ReqId.IPhA))
+        , req.DataRequest(label="A Phase active power", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrA))
+        , req.DataRequest(label="Active power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwr))
+        , req.DataRequest(label="Active in energy sum", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
 
     ]
 

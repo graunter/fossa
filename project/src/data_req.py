@@ -7,7 +7,7 @@ class DataRequest(ttk.TTkFrame):
             , label: ttk.TTkString = "Param name"
             , data: ttk.TTkString = "NA"
             , unit: ttk.TTkString = ""
-            , request = None
+            , req = None
             , **kwargs) -> None:
         
         super().__init__(
@@ -21,7 +21,7 @@ class DataRequest(ttk.TTkFrame):
         self.data_txt = data
         self.unit_txt = unit
         self.device = None
-        self.req = request
+        self.req = req
         
         start_column = 0
         name_column = start_column
@@ -29,11 +29,11 @@ class DataRequest(ttk.TTkFrame):
         units_column = data_column +1
 
         def_name_w = 25
-        def_data_w = 20
+        def_data_w = 25
         def_unit_w = 20
 
         def_name_size = 25
-        def_data_size = 20
+        def_data_size = 25
         def_unit_size = 30
 
         line_cnt = 0
@@ -44,6 +44,7 @@ class DataRequest(ttk.TTkFrame):
         self.data_item.setEnabled(False)
         self.layout().addWidget(self.data_item, line_cnt, data_column)
         self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt, size=(def_unit_size,1), maxWidth = def_unit_w), line_cnt, units_column)    
+        self.layout().addWidget(ttk.TTkSpacer())
 
     def set_device(self, dev: mtr.PwrMeter):
         self.device = dev
