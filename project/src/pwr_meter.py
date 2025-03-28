@@ -175,6 +175,11 @@ class PwrMeter:
 
     def rd_tax_tbl(self, month_num: int):
 
+        # TODO: may be exeption will be better?
+        if (not self.port) or (not self.port.is_open):
+            return [ ["Port is not avaliable"], ['--:--', '   -   ', '   -   ', '   -   ', '   -   '] ]
+        
+
         if month_num+1 not in range(13):
             return ["Wrong month number"]
 
@@ -311,7 +316,7 @@ class PwrMeter:
         #TODO: read len should be calculated
         resp = self.port.read(128)
         self.sem.release()
-        
+
         txt = "NA"
 
 
