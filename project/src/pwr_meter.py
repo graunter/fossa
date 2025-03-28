@@ -4,6 +4,8 @@ from textwrap import wrap
 from enum import auto, Enum
 import my_const as mconst
 from collections import namedtuple
+import threading
+import time
 
 
 def calc_crc_16_ibm(msg:str) -> int:
@@ -146,6 +148,8 @@ class PwrMeter:
         self.port = port
         self.err_cnt = 0
 
+        self.sem = threading.Semaphore()
+
 
     def link(self, port: serial.Serial):
         self.port = port
@@ -168,6 +172,73 @@ class PwrMeter:
         is_present = True if received != b'' else False
 
         return is_present
+
+    def rd_tax_tbl(self, month_num: int):
+
+        if month_num+1 not in range(13):
+            return ["Wrong month number"]
+
+        req_id = mconst.TAX_RATE_JAN_ID_DATA + month_num
+
+        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [req_id] ], [])
+        send_packet = create_packet_from_dat(send_dat)
+
+        self.sem.acquire()
+        self.port.write(send_packet)
+        #TODO: read len should be calculated
+        resp = self.port.read(128)
+        self.sem.release()
+
+
+        taxt_tbl = []
+
+        if resp != b'':
+            txt = ""
+            if len(resp) < 70:
+                return ["Err len in resp"]
+            
+            # if (RespCode:=resp[1]) == (0x80 + mconst.GET_ID_CMD):
+            #     if ErrCode:=resp[2] in RespErrCode.keys():
+            #         txt = RespErrCode[ErrCode]
+            #     else:
+            #         txt = "Response Err"
+                
+            #     return txt
+
+            data_start_pos = 4
+            data_end_pos = data_start_pos + 64
+            line_size = 4
+
+            in_dat_full = resp[data_start_pos:data_end_pos]
+
+            for idx_cnt in range(16):
+
+                in_dat = in_dat_full[line_size*idx_cnt : line_size*(idx_cnt+1)]
+
+                hours   =  '-' if 0xFF == in_dat[0] else str(in_dat[0]).zfill(2)
+                minutes =  '-' if 0xFF == in_dat[1] else str(in_dat[1]).zfill(2)
+
+                lo_nible = 0x0F & in_dat[2]
+                work_day = '-' if 0x0F == lo_nible else lo_nible + 1
+                  
+                hi_nible = (0xF0 & in_dat[2]) >> 4
+                holl_day = '-' if 0x0F == hi_nible else hi_nible + 1
+
+                lo_nible = 0x0F & in_dat[2]
+                sat_day = '-' if 0x0F == lo_nible else lo_nible + 1
+                  
+                hi_nible = (0xF0 & in_dat[2]) >> 4
+                san_day = '-' if 0x0F == hi_nible else hi_nible + 1
+
+
+                this_line = [ f'{hours}:{minutes}', str(work_day) , str(holl_day), str(sat_day), str(san_day) ]
+
+                taxt_tbl.append(this_line)
+        else:
+            taxt_tbl = [[] for x in range(5)]
+
+        return taxt_tbl
+    
 
 
     def rd_str(self, item: ReqId):
@@ -234,10 +305,13 @@ class PwrMeter:
         
         send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [this_msg.id] ], [])
         send_packet = create_packet_from_dat(send_dat)
+
+        self.sem.acquire()
         self.port.write(send_packet)
         #TODO: read len should be calculated
         resp = self.port.read(128)
-
+        self.sem.release()
+        
         txt = "NA"
 
 
@@ -308,7 +382,6 @@ class PwrMeter:
 
         return txt
         
-
 
 
 
