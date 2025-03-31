@@ -50,6 +50,10 @@ class DataRequest(ttk.TTkFrame):
         self.device = dev
 
     def upd_from_dev(self):
+        if not self.device:
+            self.data_item.setText("no device")
+            return
+
         if self.req:
             txt = self.req(self.device)
             self.data_item.setText(txt)
