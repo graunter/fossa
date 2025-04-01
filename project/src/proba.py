@@ -56,6 +56,7 @@ def decode_rtc(resp: list):
     txt = ':'.join([seconds, minutes, hours, doweek, days, months, years])
     return txt
 
+
 #command_to_send = "AT+RET\r\n"
 #command_to_send = [adr, service_code, access_lvl, access_pwd, cmd_crc]
 
@@ -98,6 +99,7 @@ for test_adr in adr:
             print(f'\n {test_adr}, {hex(test_adr)}: RTC')
             print(f'>> {[hex(one) for one in send_packet]}')
             print(f'<< {[hex(one) for one in resp]}')
+            print(f'dec: {list(resp)}')
             txt = decode_rtc(resp)
             print(f'{txt}')
 

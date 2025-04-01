@@ -11,6 +11,7 @@ import data_req as req
 import pwr_meter as mtr
 from pwr_meter import ReqId
 import sett_view as sview
+import rec_view as rview
 
 view_frames = defaultdict(list)
 
@@ -27,6 +28,7 @@ g_info_frame: ttk.TTkFrame
 g_hw_info_items: list[req.DataRequest]
 g_mb_adr_ledit: ttk.TTkLineEdit
 g_sett_frame: sview.SettingsFrame
+g_rec_frame: rview.RecordsFrame
 
 
 def serial_ports():
@@ -177,6 +179,8 @@ def on_mb_open_btn():
         g_sett_frame.set_device(g_cnt_lst[0])
         g_sett_frame.on_upd()
 
+        g_rec_frame.set_device(g_cnt_lst[0])
+
     else:
         bg_color = ttk.TTkColor.BG_RED
         wrn_box = ttk.TTkMessageBox(
@@ -229,6 +233,7 @@ def build_main_screen(root=None):
     global g_mb_adr_ledit
     global g_view_frame
     global g_sett_frame
+    global g_rec_frame
 
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
@@ -245,12 +250,14 @@ def build_main_screen(root=None):
     login_frame = ttk.TTkFrame(border=True, title="Login", visible=True)
     g_info_frame = build_hw_info_frame()
     g_sett_frame = sview.SettingsFrame(border=True, title="Config", visible=False)
+    g_rec_frame = rview.RecordsFrame(border=True, title="Records", visible=False)
     service_frame = ttk.TTkFrame(border=True, title="Service", visible=False)
     g_view_frame = build_view_frame()
 
     top_btn_frame.addWidget(create_btn_for_frame(True, login_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, g_info_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, g_view_frame))
+    top_btn_frame.addWidget(create_btn_for_frame(False, g_rec_frame))    
     top_btn_frame.addWidget(create_btn_for_frame(False, g_sett_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, service_frame))    
 
@@ -282,7 +289,8 @@ def build_main_screen(root=None):
     mframe_layout = ttk.TTkVBoxLayout()
     main_frame.setLayout(mframe_layout)
 
-    mframe_layout.addWidgets([login_frame, g_info_frame, g_view_frame, g_sett_frame, service_frame])
+    #TODO: should be done in one time with button
+    mframe_layout.addWidgets([login_frame, g_info_frame, g_view_frame, g_sett_frame, g_rec_frame, service_frame])
 
     
     log_wnd = ttk.TTkWindow(parent=main_frame, pos = (15,4), size=(87,20), title="Log Window", flags=0, visible=False)

@@ -1,6 +1,6 @@
 
 
-TEST_ADR = 0x17
+TEST_ADR = 0x15
 
 
 GET_ID_CMD	=	1

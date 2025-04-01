@@ -173,6 +173,79 @@ class PwrMeter:
 
         return is_present
 
+    def run_request(self, pdu: list) -> bytes:
+        send_packet = create_packet_from_dat(pdu)  
+
+        self.sem.acquire()
+        self.port.write(send_packet)
+        #TODO: read len should be calculated
+        resp = self.port.read(128)
+        self.sem.release()             
+
+        RespErrCode = {
+            1: "ILLEGAL_FUNCTION"
+            , 2: "ILLEGAL_DATA_ADDRESS"
+            , 3: "ILLEGAL_DATA_VALUE"
+            , 4: "SLAVE_DEVICE_FAILURE"
+            , 5: "ACKNOWLEDGE"
+            , 6: "SLAVE_DEVICE_BUSY"
+            , 7: "MEMORY_ACCESS_ERROR"
+            , 8: "SESSION_CLOSED"
+            , 9: "ACCESS_DENIED"
+            , 10: "ERROR_CRC"
+            , 11: "FRAME_INCORRECT"
+            , 12: "JUMPER_ABSENT"
+            , 13: "PASSW_INCORRECT"
+            , 14: "ACCESS_BLOCKED"
+        }
+
+        if resp == b'':
+            raise serial.SerialException("No response from device")
+        else:
+            if len(resp) < 3:
+                raise serial.SerialException("Too short response")
+            
+            if (RespCode:=resp[1]) == (0x80 + pdu[1]):
+                if (ErrCode:=resp[2]) in RespErrCode.keys():
+                    txt = RespErrCode[ErrCode]
+                else:
+                    txt = "Response Err"
+                
+                raise serial.SerialException(f'{txt}')
+
+            data_start_pos = 4
+            data_end_pos = data_start_pos + 2
+
+            in_data = resp[data_start_pos:len(resp)-2]
+            return in_data
+
+
+    def rd_total_tax_count(self) ->int:
+        cmd = mconst.GETLISTNE_ID_CMD
+        obj_id = mconst.PWI_ID_DATA
+
+        send_dat = [self.adr, cmd, obj_id]
+
+        in_dat = self.run_request(send_dat)
+
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+        
+        return in_digit
+
+    def rd_total_tax_current(self) ->int:
+        cmd = mconst.GETCURINDEX_ID_CMD
+        obj_id = mconst.PWI_ID_DATA
+
+        send_dat = [self.adr, cmd, obj_id]
+
+        in_dat = self.run_request(send_dat)
+
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+        
+        return in_digit
+
+
+
     def rd_tax_tbl(self, month_num: int):
 
         # TODO: may be exeption will be better?
@@ -327,7 +400,7 @@ class PwrMeter:
                 return "Err len in resp" 
             
             if (RespCode:=resp[1]) == (0x80 + mconst.GET_ID_CMD):
-                if ErrCode:=resp[2] in RespErrCode.keys():
+                if (ErrCode:=resp[2]) in RespErrCode.keys():
                     txt = RespErrCode[ErrCode]
                 else:
                     txt = "Response Err"
