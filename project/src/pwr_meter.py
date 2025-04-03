@@ -173,7 +173,7 @@ class PwrMeter:
 
         return is_present
 
-    def run_request(self, pdu: list) -> bytes:
+    def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
 
         self.sem.acquire()
@@ -199,7 +199,9 @@ class PwrMeter:
             , 14: "ACCESS_BLOCKED"
         }
 
-        if resp == b'':
+        if no_resp_fl and not resp:
+            return
+        elif resp == b'':
             raise serial.SerialException("No response from device")
         else:
             if len(resp) < 3:
@@ -218,6 +220,53 @@ class PwrMeter:
 
             in_data = resp[data_start_pos:len(resp)-2]
             return in_data
+    
+    
+    def rd_pwi_record(self, idx: int):
+        # cmd = mconst.LISTINIT_ID_CMD
+        # obj_id = mconst.PWI_ID_DATA
+        # send_dat = [self.adr, cmd, obj_id]
+        # in_dat = self.run_request(send_dat, True)
+
+        # time.sleep(2)   
+
+        cmd = mconst.getPWIRecord_ID_CMD
+        obj_id = mconst.PWI_ID_DATA
+
+        b0 = idx & 0xFF
+        b1 = (idx >> 8) & 0xFF
+
+        send_dat = [self.adr, cmd, obj_id, b0, b1]
+
+        in_dat = self.run_request(send_dat)
+
+        
+        # date_lst, rest = self.decode_rtc_to_liststr(in_dat)
+        minutes = str(in_dat[0]).zfill(2)
+        hours = str(in_dat[1]).zfill(2)
+        days = str(in_dat[2]).zfill(2)
+        months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        months_idx = in_dat[3]
+        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        years = str(2000 + in_dat[4])
+ 
+        date_txt = ':'.join( [minutes, hours, days, months, years] )
+
+        rest = in_dat[5:]
+
+        P_sum_in = rest[0:3].hex().removesuffix('F')
+        P_sum_out = rest[4:7].hex().removesuffix('F')
+        # Q_sum_in = rest[8:11].hex().removesuffix('F')
+        # Q_sum_out = rest[12:15].hex().removesuffix('F')
+
+        # end_fl = rest[16]
+        end_fl = rest[8]
+
+        # hour_record = [date_txt, str(P_sum_in), str(P_sum_out), str(Q_sum_in), str(Q_sum_out), str(end_fl)]
+        hour_record = [date_txt, str(P_sum_in), str(P_sum_out), str(end_fl)]
+        
+        return hour_record
+            
 
 
     def rd_total_tax_count(self) ->int:
@@ -317,7 +366,19 @@ class PwrMeter:
 
         return taxt_tbl
     
-
+    def decode_rtc_to_liststr(self, in_dat: bytes):
+        seconds = str(in_dat[0]).zfill(2)
+        minutes = str(in_dat[1]).zfill(2)
+        hours = str(in_dat[2]).zfill(2)
+        dow = ['ERR', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+        doweek_idx = in_dat[3]
+        doweek = str(dow[doweek_idx]) if doweek_idx < len(dow) else 'Err'
+        days = str(in_dat[4]).zfill(2)
+        months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        months_idx = in_dat[5]
+        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        years = str(2000 + in_dat[6])
+        return [seconds, minutes, hours, doweek, days, months, years], in_dat[7:]
 
     def rd_str(self, item: ReqId):
 
@@ -430,18 +491,8 @@ class PwrMeter:
                 in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
                 txt = str(in_real)   
             elif this_msg.dtype == DType.RtcData:
-                seconds = str(in_dat[0]).zfill(2)
-                minutes = str(in_dat[1]).zfill(2)
-                hours = str(in_dat[2]).zfill(2)
-                dow = ['ERR', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-                doweek_idx = in_dat[3]
-                doweek = str(dow[doweek_idx]) if doweek_idx < len(dow) else 'Err'
-                days = str(in_dat[4]).zfill(2)
-                months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-                months_idx = in_dat[5]
-                months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
-                years = str(2000 + in_dat[6])
-                txt = ':'.join([seconds, minutes, hours, doweek, days, months, years])
+                time_list, _ = self.decode_rtc_to_liststr(in_dat)
+                txt = ':'.join(time_list)
             elif this_msg.dtype == DType.VScaleData:
             #     in_digit = in_dat[0:1]
             #     digit = int.from_bytes(in_digit, byteorder='little', signed=False)

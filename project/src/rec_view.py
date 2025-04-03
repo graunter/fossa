@@ -21,16 +21,28 @@ class RecordsFrame(ttk.TTkFrame):
 
         super().__init__(name="name", **kwargs)
 
-
-        self.get_rec_btn = ttk.TTkButton(text='Read total counts from device', border=True, maxHeight = 5 )
+        #---
+        self.get_rec_btn = ttk.TTkButton(text='Read total counts', border=True, maxHeight = 5 )
         self.get_rec_btn.clicked.connect(self.on_read_cnt_btn)
 
-        months_lst = ['JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        self.mlst = ttk.TTkComboBox(list=months_lst, text="Month", index=0)
+        btns_frame = ttk.TTkFrame()
+        btns_frame.setLayout( ttk.TTkHBoxLayout() )
+
+        len_lst = ['Last' , '10', '100', '1000', 'All']
+        self.mlst = ttk.TTkComboBox(list=len_lst, text="Month", index=0)
+
+        self.get_table_btn = ttk.TTkButton(text='Read records', border=True, maxHeight = 5 )
+        self.get_table_btn.clicked.connect(self.on_read_tbl_btn)        
+
+        btns_frame.layout().addWidget(self.get_rec_btn)
+        btns_frame.layout().addWidget(self.mlst)
+        btns_frame.layout().addWidget(self.get_table_btn)
 
 
-        self.head_tax_tbl = ['Time', 'DoW', 'Month', 'Year', 'Active Pwr', 'Done'] 
-        no_tax_tbl = [ ['--:--', '   -   ', '   -   ', '   -   ', '   -   ', '   -   '] ]
+        #---
+
+        self.head_tax_tbl = ['Time', 'Active in Pwr', 'Active out Pwr', 'Done'] 
+        no_tax_tbl = [ ['-----------------------' for _ in range( len(self.head_tax_tbl) ) ] ]
 
         tax_tableModel = ttk.TTkTableModelList(data=no_tax_tbl, header=self.head_tax_tbl)        
 
@@ -39,9 +51,42 @@ class RecordsFrame(ttk.TTkFrame):
         self.tax_table.resizeColumnsToContents()
 
         self.setLayout(ttk.TTkVBoxLayout())
-        self.layout().addWidget(self.mlst)
-        self.layout().addWidget(self.get_rec_btn)
+
+        self.layout().addWidget(btns_frame)
         self.layout().addWidget(self.tax_table)        
+
+    def on_read_tbl_btn(self):
+
+        cur_idx = self.device.rd_total_tax_current()
+
+        match self.mlst.currentIndex():
+            case 0:  # Last
+                total_cnt = 1
+                # pwi_rec = self.device.rd_pwi_record(cur_idx)
+                # tax_tableModel = ttk.TTkTableModelList(data=[pwi_rec], header=self.head_tax_tbl) 
+                # self.tax_table.setModel(tax_tableModel)
+                # return
+            case 4:
+                total_cnt = self.device.rd_total_tax_count()                
+            case 1 | 2 | 3:
+                total_cnt = 10 * self.mlst.currentIndex()
+                total_tbl_cnt = self.device.rd_total_tax_count()
+
+                total_cnt = min(total_cnt, total_tbl_cnt)
+
+        cur_idx += 1
+        rd_idx = cur_idx
+        pwi_tbl = []
+        for i in range(total_cnt):
+            pwi_rec = self.device.rd_pwi_record(rd_idx)
+            pwi_tbl.append(pwi_rec)
+            rd_idx -=1
+            if rd_idx < 0:
+                rd_idx = 5903
+
+        tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
+        self.tax_table.setModel(tax_tableModel) 
+
 
 
     def on_read_cnt_btn(self):
