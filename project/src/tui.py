@@ -8,6 +8,7 @@ import glob
 import serial               #pip install pyserial
 from my_const import *
 import data_req as req
+from hw_frame import HardInfoFrame
 from real_view import RealFrame
 import pwr_meter as mtr
 from pwr_meter import ReqId
@@ -25,8 +26,7 @@ g_pause_visit_fl = True
 g_read_err_counter = 0
 g_pull_visit_thrd = None
 g_cnt_lst = []
-g_info_frame: ttk.TTkFrame
-g_hw_info_items: list[req.DataRequest]
+g_info_frame: HardInfoFrame
 g_mb_adr_ledit: ttk.TTkLineEdit
 g_sett_frame: sview.SettingsFrame
 g_rec_frame: rview.RecordsFrame
@@ -74,18 +74,6 @@ def switch_frame(next_frame: ttk.TTkFrame):
     g_current_frame = next_frame
 
 
-def init_hw_info_items(dev):
-    global g_hw_info_items
-
-    for item in g_hw_info_items:
-        item.set_device(dev)
-
-def upd_hw_info_items():
-    global g_hw_info_items
-
-    for item in g_hw_info_items:
-        item.upd_from_dev()
-
 
 
 def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkButton:
@@ -103,17 +91,6 @@ def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkB
 
     return new_btn
 
-# def calc_crc_16_ibm(msg:str) -> int:
-#     crc = 0xFFFF
-#     for n in range(len(msg)):
-#         crc ^= msg[n]
-#         for i in range(8):
-#             if crc & 1:
-#                 crc >>= 1
-#                 crc ^= 0xA001
-#             else:
-#                 crc >>= 1
-#     return crc
 
 def close_serial():
     global g_ser
@@ -170,8 +147,8 @@ def on_mb_open_btn():
 
         g_cnt_lst.append(mtr.PwrMeter(mb_adr, g_ser))
 
-        init_hw_info_items(g_cnt_lst[0])
-        upd_hw_info_items()
+        g_info_frame.set_device(g_cnt_lst[0])
+        g_info_frame.on_upd()
 
         g_view_frame.set_device(g_cnt_lst[0])
 
@@ -249,7 +226,7 @@ def build_main_screen(root=None):
 
     # Frames for used data
     login_frame = ttk.TTkFrame(border=True, title="Login", visible=True)
-    g_info_frame = build_hw_info_frame()
+    g_info_frame = HardInfoFrame(border=True, title="HW Info", visible=False)
     g_sett_frame = sview.SettingsFrame(border=True, title="Config", visible=False)
     g_rec_frame = rview.RecordsFrame(border=True, title="Records", visible=False)
     service_frame = ttk.TTkFrame(border=True, title="Service", visible=False)
@@ -415,45 +392,7 @@ def build_main_screen(root=None):
     login_frame_layout.addWidget(conn_frame)
     login_frame.setLayout(login_frame_layout)
 
-    
-def build_hw_info_frame():
-    global g_hw_info_items
-    global g_cnt_lst
 
-    info_frame = ttk.TTkFrame(border=True, title="HW Info", visible=False)
-
-    info_frame.setLayout(ttk.TTkGridLayout())
-
-    line_cnt = 0
-    name_column = 0
-    data_column = 1
-    units_column = 2
-
-    def_name_w = 30
-    def_data_w = 20
-    def_unit_w = 20
-
-    def_name_size = 20
-    def_data_size = 20
-    def_unit_size = 30
-
-    g_hw_info_items = [
-          req.DataRequest(label="Model name", req=lambda dev: dev.rd_str(mtr.ReqId.model))
-        , req.DataRequest(label="Serial number", req=lambda dev: dev.rd_str(mtr.ReqId.serial_num))
-        , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(mtr.ReqId.prod_date))
-        , req.DataRequest(label="FW version", req=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
-        , req.DataRequest(label="Current scale", req=lambda dev: dev.rd_str(mtr.ReqId.i_scale))
-        , req.DataRequest(label="Voltage scale", req=lambda dev: dev.rd_str(mtr.ReqId.v_scale))        
-    ]
-
-    info_frame.setLayout(ttk.TTkVBoxLayout())
-    for item in g_hw_info_items:
-        info_frame.layout().addWidget(item)
-
-    info_frame.layout().addWidget(ttk.TTkSpacer())
-
-
-    return info_frame
 
 def rh(dev, Id: ReqId):
     return lambda dev: dev.rd_str(Id)
