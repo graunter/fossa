@@ -8,6 +8,7 @@ import glob
 import serial               #pip install pyserial
 from my_const import *
 import data_req as req
+from real_view import RealFrame
 import pwr_meter as mtr
 from pwr_meter import ReqId
 import sett_view as sview
@@ -102,17 +103,17 @@ def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkB
 
     return new_btn
 
-def calc_crc_16_ibm(msg:str) -> int:
-    crc = 0xFFFF
-    for n in range(len(msg)):
-        crc ^= msg[n]
-        for i in range(8):
-            if crc & 1:
-                crc >>= 1
-                crc ^= 0xA001
-            else:
-                crc >>= 1
-    return crc
+# def calc_crc_16_ibm(msg:str) -> int:
+#     crc = 0xFFFF
+#     for n in range(len(msg)):
+#         crc ^= msg[n]
+#         for i in range(8):
+#             if crc & 1:
+#                 crc >>= 1
+#                 crc ^= 0xA001
+#             else:
+#                 crc >>= 1
+#     return crc
 
 def close_serial():
     global g_ser
@@ -172,9 +173,7 @@ def on_mb_open_btn():
         init_hw_info_items(g_cnt_lst[0])
         upd_hw_info_items()
 
-        for item in g_view_items:
-            item.set_device(g_cnt_lst[0])
-            item.upd_from_dev()
+        g_view_frame.set_device(g_cnt_lst[0])
 
         g_sett_frame.set_device(g_cnt_lst[0])
         g_sett_frame.on_upd()
@@ -209,8 +208,10 @@ def on_visit_pull():
     while True:   
         if not g_pause_visit_fl:
             try:
-                for item in g_view_items:
-                    item.upd_from_dev()
+                # for item in g_view_items:
+                #     item.upd_from_dev()
+                if g_view_frame.isVisible():
+                    g_view_frame.on_upd()
 
             except serial.SerialException as e:
                 err_box = ttk.TTkMessageBox(
@@ -252,7 +253,7 @@ def build_main_screen(root=None):
     g_sett_frame = sview.SettingsFrame(border=True, title="Config", visible=False)
     g_rec_frame = rview.RecordsFrame(border=True, title="Records", visible=False)
     service_frame = ttk.TTkFrame(border=True, title="Service", visible=False)
-    g_view_frame = build_view_frame()
+    g_view_frame = RealFrame(border=True, title="View", visible=False)
 
     top_btn_frame.addWidget(create_btn_for_frame(True, login_frame))
     top_btn_frame.addWidget(create_btn_for_frame(False, g_info_frame))
@@ -456,39 +457,6 @@ def build_hw_info_frame():
 
 def rh(dev, Id: ReqId):
     return lambda dev: dev.rd_str(Id)
-
-def build_view_frame():
-    global g_view_frame
-    global g_view_items
-
-    g_view_frame = ttk.TTkFrame(border=True, title="View", visible=False)
-
-    g_view_frame.setLayout(ttk.TTkGridLayout())
-
-    line_cnt = 0
-    name_column = 0
-    data_column = 1
-    units_column = 2
-
-    g_view_items = [
-        req.DataRequest(label="RTC", req=lambda dev: dev.rd_str(ReqId.rtc))
-        , req.DataRequest(label="Rate", req=lambda dev: dev.rd_str(ReqId.cur_rate))
-        , req.DataRequest(label="A Phase voltage A", unit="V", req=lambda dev: dev.rd_str(ReqId.UPhA))
-        , req.DataRequest(label="A Phase current A", unit="A", req=lambda dev: dev.rd_str(ReqId.IPhA))
-        , req.DataRequest(label="A Phase active power", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrA))
-        , req.DataRequest(label="Active power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwr))
-        , req.DataRequest(label="Active in energy sum", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
-
-    ]
-
-    g_view_frame.setLayout(ttk.TTkVBoxLayout())
-    for item in g_view_items:
-        g_view_frame.layout().addWidget(item)
-
-    g_view_frame.layout().addWidget(ttk.TTkSpacer())
-
-
-    return g_view_frame
 
 
 
