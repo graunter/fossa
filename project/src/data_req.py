@@ -55,6 +55,9 @@ class DataRequest(ttk.TTkFrame):
             return
 
         if self.req:
-            txt = self.req(self.device)
+            try:
+                txt = self.req(self.device)
+            except Exception as e:
+                txt = f'{str(e)}'
+    
             self.data_item.setText(txt)
-        

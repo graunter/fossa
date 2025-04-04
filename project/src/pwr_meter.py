@@ -389,74 +389,44 @@ class PwrMeter:
 
     def rd_tax_tbl(self, month_num: int):
 
-        # TODO: may be exeption will be better?
-        if (not self.port) or (not self.port.is_open):
-            return [ ["Port is not avaliable"], ['--:--', '   -   ', '   -   ', '   -   ', '   -   '] ]
+        if month_num not in range(12):
+            raise IndexError("Wrong month number")
         
-
-        if month_num+1 not in range(13):
-            return ["Wrong month number"]
-
         req_id = mconst.TAX_RATE_JAN_ID_DATA + month_num
 
-        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [req_id] ], [])
-        send_packet = create_packet_from_dat(send_dat)
-
-        self.sem.acquire()
-        self.port.write(send_packet)
-        #TODO: read len should be calculated
-        resp = self.port.read(128)
-        self.sem.release()
-
-
+        in_dat_full = self.run_request([self.adr, mconst.GET_ID_CMD, req_id])
+ 
         taxt_tbl = []
+        line_size = 4
+        for idx_cnt in range(16):
 
-        if resp != b'':
-            txt = ""
-            if len(resp) < 70:
-                return ["Err len in resp"]
-            
-            # if (RespCode:=resp[1]) == (0x80 + mconst.GET_ID_CMD):
-            #     if ErrCode:=resp[2] in RespErrCode.keys():
-            #         txt = RespErrCode[ErrCode]
-            #     else:
-            #         txt = "Response Err"
+            in_dat = in_dat_full[line_size*idx_cnt : line_size*(idx_cnt+1)]
+
+            hours   =  '-' if 0xFF == in_dat[0] else str(in_dat[0]).zfill(2)
+            minutes =  '-' if 0xFF == in_dat[1] else str(in_dat[1]).zfill(2)
+
+            lo_nible = 0x0F & in_dat[2]
+            work_day = '-' if 0x0F == lo_nible else lo_nible + 1
                 
-            #     return txt
+            hi_nible = (0xF0 & in_dat[2]) >> 4
+            holl_day = '-' if 0x0F == hi_nible else hi_nible + 1
 
-            data_start_pos = 4
-            data_end_pos = data_start_pos + 64
-            line_size = 4
-
-            in_dat_full = resp[data_start_pos:data_end_pos]
-
-            for idx_cnt in range(16):
-
-                in_dat = in_dat_full[line_size*idx_cnt : line_size*(idx_cnt+1)]
-
-                hours   =  '-' if 0xFF == in_dat[0] else str(in_dat[0]).zfill(2)
-                minutes =  '-' if 0xFF == in_dat[1] else str(in_dat[1]).zfill(2)
-
-                lo_nible = 0x0F & in_dat[2]
-                work_day = '-' if 0x0F == lo_nible else lo_nible + 1
-                  
-                hi_nible = (0xF0 & in_dat[2]) >> 4
-                holl_day = '-' if 0x0F == hi_nible else hi_nible + 1
-
-                lo_nible = 0x0F & in_dat[2]
-                sat_day = '-' if 0x0F == lo_nible else lo_nible + 1
-                  
-                hi_nible = (0xF0 & in_dat[2]) >> 4
-                san_day = '-' if 0x0F == hi_nible else hi_nible + 1
+            lo_nible = 0x0F & in_dat[2]
+            sat_day = '-' if 0x0F == lo_nible else lo_nible + 1
+                
+            hi_nible = (0xF0 & in_dat[2]) >> 4
+            san_day = '-' if 0x0F == hi_nible else hi_nible + 1
 
 
-                this_line = [ f'{hours}:{minutes}', str(work_day) , str(holl_day), str(sat_day), str(san_day) ]
+            this_line = [ f'{hours}:{minutes}', str(work_day) , str(holl_day), str(sat_day), str(san_day) ]
 
-                taxt_tbl.append(this_line)
-        else:
-            taxt_tbl = [[] for x in range(5)]
+            taxt_tbl.append(this_line)
+
+            # taxt_tbl = [[] for x in range(5)]
 
         return taxt_tbl
+    
+
     
     def decode_rtc_to_liststr(self, in_dat: bytes):
         seconds = str(in_dat[0]).zfill(2)
@@ -487,20 +457,13 @@ class PwrMeter:
     
 
     def rd_str(self, item: ReqId):
-
-        # TODO: may be exeption will be better?
-        if not self.port:
-            return 0, "0"
-        
-        if not self.port.is_open:
-            return 0, "0"    
         
         Msg = namedtuple("Msg", "dtype id len scale", defaults=(None, None, None, 1))
 
         trans_str_tbl = { 
               ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 14)  
             , ReqId.fw_ver: Msg(DType.StrData, mconst.FW_ID_DATA, 4)
-            , ReqId.serial_num: Msg(DType.DigitData, mconst.SN_ID_DATA, 4)
+            , ReqId.serial_num: Msg(DType.StrData, mconst.SN_ID_DATA, 15)
             , ReqId.prod_date: Msg(DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
             , ReqId.cur_rate: Msg(DType.DigitData, mconst.RATE_ID_DATA, 1)
             , ReqId.v_scale: Msg(DType.VScaleData, mconst.SCALE_ID_DATA, 4)
@@ -517,29 +480,7 @@ class PwrMeter:
 
             , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
 
-            , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4)   
-             
-
-
-                              
-
-        }
-
-        RespErrCode = {
-            1: "ILLEGAL_FUNCTION"
-            , 2: "ILLEGAL_DATA_ADDRESS"
-            , 3: "ILLEGAL_DATA_VALUE"
-            , 4: "SLAVE_DEVICE_FAILURE"
-            , 5: "ACKNOWLEDGE"
-            , 6: "SLAVE_DEVICE_BUSY"
-            , 7: "MEMORY_ACCESS_ERROR"
-            , 8: "SESSION_CLOSED"
-            , 9: "ACCESS_DENIED"
-            , 10: "ERROR_CRC"
-            , 11: "FRAME_INCORRECT"
-            , 12: "JUMPER_ABSENT"
-            , 13: "PASSW_INCORRECT"
-            , 14: "ACCESS_BLOCKED"
+            , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4)                      
         }
 
         if item not in trans_str_tbl.keys():
@@ -547,72 +488,41 @@ class PwrMeter:
             raise ValueError('Request from GUI is not supported!')
 
         this_msg = trans_str_tbl[item]
-        
-        send_dat = sum([[self.adr], [mconst.GET_ID_CMD], [this_msg.id] ], [])
-        send_packet = create_packet_from_dat(send_dat)
 
-        self.sem.acquire()
-        self.port.write(send_packet)
-        #TODO: read len should be calculated
-        resp = self.port.read(128)
-        self.sem.release()
+        in_dat = self.run_request([self.adr, mconst.GET_ID_CMD, this_msg.id])
 
         txt = "NA"
 
-
-
-        if resp != b'':
-            txt = ""
-            if len(resp) < 5:
-                return "Err len in resp" 
-            
-            if (RespCode:=resp[1]) == (0x80 + mconst.GET_ID_CMD):
-                if (ErrCode:=resp[2]) in RespErrCode.keys():
-                    txt = RespErrCode[ErrCode]
-                else:
-                    txt = "Response Err"
-                
-                return txt
-
-            data_start_pos = 4
-            data_end_pos = data_start_pos + this_msg.len
-
-            in_dat = resp[data_start_pos:data_end_pos]
-            if this_msg.dtype == DType.StrData:
-                i = in_dat.find(b'\x00')
-                if i == -1:
-                    re_in_dat = in_dat
-                else:
-                    re_in_dat = in_dat[:i]
-                in_str = re_in_dat.decode("utf-8")
-                txt = in_str.rstrip('\0')
-            elif this_msg.dtype == DType.DigitData:
-                digit = resp[data_start_pos:data_end_pos]
-                in_digit = int.from_bytes(digit, byteorder='little', signed=True)
-                in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
-                txt = str(in_real)
-            elif this_msg.dtype == DType.PacDecData:
-                digit = resp[data_start_pos:data_end_pos]
-                in_digit = digit.hex().removesuffix('F')
-                in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
-                txt = str(in_real)   
-            elif this_msg.dtype == DType.RtcData:
-                time_list, _ = self.decode_rtc_to_liststr(in_dat)
-                txt = ':'.join(time_list)
-            elif this_msg.dtype == DType.VScaleData:
-            #     in_digit = in_dat[0:1]
-            #     digit = int.from_bytes(in_digit, byteorder='little', signed=False)
-            #     txt = str(digit)
-                txt = "Access denied"
-            elif this_msg.dtype == DType.IScaleData:
-            #     in_digit = in_dat[2:3]
-            #     digit = int.from_bytes(in_digit, byteorder='little', signed=False)
-            #     txt = str(digit)   
-                txt = "Access denied"             
+        if this_msg.dtype == DType.StrData:
+            i = in_dat.find(b'\x00')
+            if i == -1:
+                re_in_dat = in_dat
             else:
-                txt = "Err"
+                re_in_dat = in_dat[:i]
+            in_str = re_in_dat.decode("utf-8")
+            txt = in_str.rstrip('\0')
+        elif this_msg.dtype == DType.DigitData:
+            in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+            in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
+            txt = str(in_real)
+        elif this_msg.dtype == DType.PacDecData:
+            in_digit = in_dat.hex().removesuffix('F')
+            in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
+            txt = str(in_real)   
+        elif this_msg.dtype == DType.RtcData:
+            time_list, _ = self.decode_rtc_to_liststr(in_dat)
+            txt = ':'.join(time_list)
+        elif this_msg.dtype == DType.VScaleData:
+            in_digit = in_dat[0:1]
+            digit = int.from_bytes(in_dat, byteorder='little', signed=False)
+            txt = str(digit)
+        elif this_msg.dtype == DType.IScaleData:
+            in_digit = in_dat[2:3]
+            digit = int.from_bytes(in_digit, byteorder='little', signed=False)
+            txt = str(digit)              
         else:
-            self.err_cnt += 1
+            txt = "Err"
+
 
 
         return txt
