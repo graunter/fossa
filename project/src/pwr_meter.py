@@ -262,14 +262,16 @@ class PwrMeter:
 
         in_dat = self.run_request(send_dat)
 
-        date_lst, rest = self.decode_time_to_liststr(in_dat)
+        date_lst, rest = self.decode_timesec_to_liststr(in_dat)
  
         date_txt = ':'.join( date_lst )
 
+        scale = 1
         pwr_lst = []
         for i in range(8*4 + 4):
-            pwr = rest[0:3].hex().removesuffix('F')
-            pwr_lst.append(pwr)
+            pwr = rest[0:4].hex().removesuffix('F')
+            real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
+            pwr_lst.append(real)
             rest = rest[4:]
 
         if len(rest) != 0: 
@@ -313,13 +315,15 @@ class PwrMeter:
         send_dat = [self.adr, cmd, obj_id, b0, b1]
         in_dat = self.run_request(send_dat)
 
-        date_lst, rest = self.decode_time_to_liststr(in_dat)
+        date_lst, rest = self.decode_timesec_to_liststr(in_dat)
         date_txt = ':'.join( date_lst )
+        scale = 1
 
         pwr_lst = []
         for i in range(8*4 + 4):
-            pwr = rest[0:3].hex().removesuffix('F')
-            pwr_lst.append(pwr)
+            pwr = rest[0:4].hex().removesuffix('F')
+            real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
+            pwr_lst.append(real)
             rest = rest[4:]
 
         hour_record = [date_txt] + pwr_lst
@@ -449,7 +453,18 @@ class PwrMeter:
  
         #date_txt = ':'.join( [minutes, hours, days, months, years] )
         return [minutes, hours, days, months, years], in_dat[5:]
-    
+
+    def decode_timesec_to_liststr(self, in_dat: bytes):
+        seconds = str(in_dat[0]).zfill(2)
+        minutes = str(in_dat[1]).zfill(2)
+        hours = str(in_dat[2]).zfill(2)
+        days = str(in_dat[3]).zfill(2)
+        months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        months_idx = in_dat[4]
+        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        years = str(2000 + in_dat[5])
+        return [seconds, minutes, hours, days, months, years], in_dat[6:]
+
 
     def rd_str(self, item: ReqId):
         
