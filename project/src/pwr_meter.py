@@ -222,6 +222,108 @@ class PwrMeter:
             return in_data
     
     
+    def rd_d_tax_current(self) ->int:
+        cmd = mconst.GETCURINDEX_ID_CMD
+        obj_id = mconst.DAYS_PWR_ID_DATA
+        send_dat = [self.adr, cmd, obj_id]
+        in_dat = self.run_request(send_dat)
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)  
+        return in_digit
+    
+    def rd_d_tax_total(self) ->int:
+        cmd = mconst.GETLISTNE_ID_CMD
+        obj_id = mconst.DAYS_PWR_ID_DATA
+        send_dat = [self.adr, cmd, obj_id]
+        in_dat = self.run_request(send_dat)
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+        return in_digit
+    
+    def rd_d_record(self, idx: int):
+
+        cmd = mconst.GET_ENTALIST_ID_CMD
+        obj_id = mconst.DAYS_PWR_ID_DATA
+
+        b0 = idx & 0xFF
+        b1 = (idx >> 8) & 0xFF
+
+        send_dat = [self.adr, cmd, obj_id, b0, b1]
+
+        in_dat = self.run_request(send_dat)
+
+        date_lst, rest = self.decode_time_to_liststr(in_dat)
+ 
+        date_txt = ':'.join( date_lst )
+
+        pwr_lst = []
+        for i in range(8*4 + 4):
+            pwr = rest[0:3].hex().removesuffix('F')
+            pwr_lst.append(pwr)
+            rest = rest[4:]
+
+        if len(rest) != 0: 
+            raise serial.SerialException(f'too long input message')
+
+        hour_record = [date_txt] + pwr_lst
+        
+        return hour_record
+    
+
+    def rd_m_tax_current(self) ->int:
+        cmd = mconst.GETCURINDEX_ID_CMD
+        obj_id = mconst.MONTHS_PWR_ID_DATA
+        send_dat = [self.adr, cmd, obj_id]
+        in_dat = self.run_request(send_dat)
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+        return in_digit
+    
+
+    def rd_m_tax_total(self) ->int:
+        cmd = mconst.GETLISTNE_ID_CMD
+        obj_id = mconst.MONTHS_PWR_ID_DATA
+
+        send_dat = [self.adr, cmd, obj_id]
+
+        in_dat = self.run_request(send_dat)
+
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+        
+        return in_digit
+
+    def rd_month_record(self, idx: int):
+
+        cmd = mconst.GETLISTNE_ID_CMD
+        obj_id = mconst.MONTHS_PWR_ID_DATA
+        send_dat = [self.adr, cmd, obj_id]
+        in_dat = self.run_request(send_dat)
+        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+
+
+        cmd = mconst.GET_ENTALIST_ID_CMD
+
+        b0 = idx & 0xFF
+        b1 = (idx >> 8) & 0xFF
+
+        send_dat = [self.adr, cmd, obj_id, b0, b1]
+
+        in_dat = self.run_request(send_dat)
+
+        date_lst, rest = self.decode_time_to_liststr(in_dat)
+ 
+        date_txt = ':'.join( date_lst )
+
+        pwr_lst = []
+        for i in range(8*4 + 4):
+            pwr = rest[0:3].hex().removesuffix('F')
+            pwr_lst.append(pwr)
+            rest = rest[4:]
+
+
+        hour_record = [date_txt] + pwr_lst
+        
+        return hour_record
+            
+
+
     def rd_pwi_record(self, idx: int):
         # cmd = mconst.LISTINIT_ID_CMD
         # obj_id = mconst.PWI_ID_DATA
@@ -240,19 +342,9 @@ class PwrMeter:
 
         in_dat = self.run_request(send_dat)
 
-        
-        # date_lst, rest = self.decode_rtc_to_liststr(in_dat)
-        minutes = str(in_dat[0]).zfill(2)
-        hours = str(in_dat[1]).zfill(2)
-        days = str(in_dat[2]).zfill(2)
-        months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        months_idx = in_dat[3]
-        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
-        years = str(2000 + in_dat[4])
+        date_lst, rest = self.decode_time_to_liststr(in_dat)
  
-        date_txt = ':'.join( [minutes, hours, days, months, years] )
-
-        rest = in_dat[5:]
+        date_txt = ':'.join( date_lst )
 
         P_sum_in = rest[0:3].hex().removesuffix('F')
         P_sum_out = rest[4:7].hex().removesuffix('F')
@@ -379,6 +471,20 @@ class PwrMeter:
         months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
         years = str(2000 + in_dat[6])
         return [seconds, minutes, hours, doweek, days, months, years], in_dat[7:]
+
+
+    def decode_time_to_liststr(self, in_dat: bytes):
+        minutes = str(in_dat[0]).zfill(2)
+        hours = str(in_dat[1]).zfill(2)
+        days = str(in_dat[2]).zfill(2)
+        months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        months_idx = in_dat[3]
+        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        years = str(2000 + in_dat[4])
+ 
+        #date_txt = ':'.join( [minutes, hours, days, months, years] )
+        return [minutes, hours, days, months, years], in_dat[5:]
+    
 
     def rd_str(self, item: ReqId):
 
