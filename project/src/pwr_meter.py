@@ -8,7 +8,7 @@ import threading
 import time
 
 
-def calc_crc_16_ibm(msg:str) -> int:
+def calc_crc_16_ibm(msg) -> int:
     crc = 0xFFFF
     for n in range(len(msg)):
         crc ^= msg[n]
@@ -24,7 +24,7 @@ def calc_crc_16_ibm(msg:str) -> int:
 def create_packet_from_dat(send_dat: list) -> list:
     crc = calc_crc_16_ibm(send_dat)
     ba = crc.to_bytes(2, byteorder='little')
-    send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
+    send_packet = send_dat + [ba[0]] + [ba[1]]
     return send_packet
 
 
@@ -201,25 +201,37 @@ class PwrMeter:
 
         if no_resp_fl and not resp:
             return
-        elif resp == b'':
+        
+        if resp == b'':
             raise serial.SerialException("No response from device")
-        else:
-            if len(resp) < 3:
-                raise serial.SerialException("Too short response")
+
+        if len(resp) < 3:
+            raise serial.SerialException("Too short response")
+        
+        if (RespCode:=resp[1]) == (0x80 + pdu[1]):
+            if (ErrCode:=resp[2]) in RespErrCode.keys():
+                txt = RespErrCode[ErrCode]
+            else:
+                txt = "Response Err"
             
-            if (RespCode:=resp[1]) == (0x80 + pdu[1]):
-                if (ErrCode:=resp[2]) in RespErrCode.keys():
-                    txt = RespErrCode[ErrCode]
-                else:
-                    txt = "Response Err"
-                
-                raise serial.SerialException(f'{txt}')
+            raise serial.SerialException(f'{txt}')
+        
+        if resp[1] != pdu[1]:
+            raise serial.SerialException('wrong reply code')            
 
-            data_start_pos = 4
-            data_end_pos = data_start_pos + 2
+        crc = calc_crc_16_ibm(resp[0:-2])
+        ba = crc.to_bytes(2, byteorder='little')
 
-            in_data = resp[data_start_pos:len(resp)-2]
-            return in_data
+        if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
+            raise serial.SerialException("Crc mismatch")
+            
+        if resp[3] != len(resp)-6:
+            raise serial.SerialException("wrong response lengt")            
+
+        data_start_pos = 4
+
+        in_data = resp[data_start_pos:len(resp)-2]
+        return in_data
     
     
     def rd_d_tax_current(self) ->int:
@@ -280,23 +292,18 @@ class PwrMeter:
     def rd_m_tax_total(self) ->int:
         cmd = mconst.GETLISTNE_ID_CMD
         obj_id = mconst.MONTHS_PWR_ID_DATA
-
         send_dat = [self.adr, cmd, obj_id]
-
         in_dat = self.run_request(send_dat)
-
         in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
-        
         return in_digit
 
     def rd_month_record(self, idx: int):
 
-        cmd = mconst.GETLISTNE_ID_CMD
+        # cmd = mconst.GETLISTNE_ID_CMD
         obj_id = mconst.MONTHS_PWR_ID_DATA
-        send_dat = [self.adr, cmd, obj_id]
-        in_dat = self.run_request(send_dat)
-        in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
-
+        # send_dat = [self.adr, cmd, obj_id]
+        # in_dat = self.run_request(send_dat)
+        # in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
 
         cmd = mconst.GET_ENTALIST_ID_CMD
 
@@ -304,11 +311,9 @@ class PwrMeter:
         b1 = (idx >> 8) & 0xFF
 
         send_dat = [self.adr, cmd, obj_id, b0, b1]
-
         in_dat = self.run_request(send_dat)
 
         date_lst, rest = self.decode_time_to_liststr(in_dat)
- 
         date_txt = ':'.join( date_lst )
 
         pwr_lst = []
@@ -316,7 +321,6 @@ class PwrMeter:
             pwr = rest[0:3].hex().removesuffix('F')
             pwr_lst.append(pwr)
             rest = rest[4:]
-
 
         hour_record = [date_txt] + pwr_lst
         
@@ -364,27 +368,19 @@ class PwrMeter:
     def rd_total_tax_count(self) ->int:
         cmd = mconst.GETLISTNE_ID_CMD
         obj_id = mconst.PWI_ID_DATA
-
         send_dat = [self.adr, cmd, obj_id]
-
         in_dat = self.run_request(send_dat)
-
         in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
-        
         return in_digit
+
 
     def rd_total_tax_current(self) ->int:
         cmd = mconst.GETCURINDEX_ID_CMD
         obj_id = mconst.PWI_ID_DATA
-
         send_dat = [self.adr, cmd, obj_id]
-
         in_dat = self.run_request(send_dat)
-
         in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
-        
         return in_digit
-
 
 
     def rd_tax_tbl(self, month_num: int):
@@ -416,7 +412,6 @@ class PwrMeter:
                 
             hi_nible = (0xF0 & in_dat[2]) >> 4
             san_day = '-' if 0x0F == hi_nible else hi_nible + 1
-
 
             this_line = [ f'{hours}:{minutes}', str(work_day) , str(holl_day), str(sat_day), str(san_day) ]
 
