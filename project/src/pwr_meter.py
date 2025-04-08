@@ -223,6 +223,9 @@ class PwrMeter:
 
             next_read_size = resp[3]
             resp_next = self.port.read(next_read_size)   
+
+            #TODO: set timeout to 3.5 chars and read no sumbols
+
         
         # self.sem.release()  
 
@@ -506,13 +509,23 @@ class PwrMeter:
             , ReqId.i_scale: Msg(DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
             
             , ReqId.rtc: Msg(DType.RtcData, mconst.RTC_ID_DATA, 7)
+
             , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
-
             , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
-
             , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000)  
 
-            , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)      
+  
+            , ReqId.UPhB: Msg(DType.DigitData, mconst.UB_ID_DATA, 3, 1000)
+            , ReqId.IPhB: Msg(DType.DigitData, mconst.IB_ID_DATA, 3, 1000)
+            , ReqId.PwrB: Msg(DType.DigitData, mconst.PB_ID_DATA, 4, 1000)  
+
+            , ReqId.UPhC: Msg(DType.DigitData, mconst.UC_ID_DATA, 3, 1000)
+            , ReqId.IPhC: Msg(DType.DigitData, mconst.IC_ID_DATA, 3, 1000)
+            , ReqId.PwrC: Msg(DType.DigitData, mconst.PC_ID_DATA, 4, 1000)                        
+
+            , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
+            , ReqId.ActPwrB: Msg(DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
+            , ReqId.ActPwrC: Msg(DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
 
             , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
 
