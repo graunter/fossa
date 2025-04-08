@@ -190,7 +190,7 @@ class RecordsFrame(ttk.TTkFrame):
                 pwi_tbl.append(pwi_rec)
                 rd_idx -=1
                 if rd_idx < 0:
-                    rd_idx = 12
+                    rd_idx = 11
 
             tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_m_tax_tbl) 
             self.tax_m_table.setModel(tax_tableModel) 
