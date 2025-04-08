@@ -137,11 +137,10 @@ class DType(Enum):
     IScaleDate = auto()
 
 
-
+class ProtocolException(Exception):
+    pass
         
 class PwrMeter:
-
-
 
     def __init__(self, adr: int, port: serial.Serial):
         self.adr = adr
@@ -179,8 +178,11 @@ class PwrMeter:
         self.sem.acquire()
         self.port.write(send_packet)
         #TODO: read len should be calculated
-        resp = self.port.read(128)
-        self.sem.release()             
+        # adr id_cmd _id_obj len crc1 crc2
+        resp = self.port.read(6)
+
+        #resp = self.port.read(128)
+        #self.sem.release()             
 
         RespErrCode = {
             1: "ILLEGAL_FUNCTION"
@@ -200,13 +202,13 @@ class PwrMeter:
         }
 
         if no_resp_fl and not resp:
-            return
+            raise ProtocolException()
         
         if resp == b'':
-            raise serial.SerialException("No response from device")
+            raise ProtocolException("No response from device")
 
         if len(resp) < 3:
-            raise serial.SerialException("Too short response")
+            raise ProtocolException("Too short response")
         
         if (RespCode:=resp[1]) == (0x80 + pdu[1]):
             if (ErrCode:=resp[2]) in RespErrCode.keys():
@@ -214,10 +216,19 @@ class PwrMeter:
             else:
                 txt = "Response Err"
             
-            raise serial.SerialException(f'{txt}')
+            raise ProtocolException(f'{txt}')
         
         if resp[1] != pdu[1]:
-            raise serial.SerialException('wrong reply code')            
+            raise ProtocolException('Wrong reply code')     
+
+        next_read_size = resp[3]
+        resp_next = self.port.read(next_read_size)   
+        self.sem.release()  
+
+        if len(resp_next) != next_read_size:
+            raise ProtocolException('Respons is not compleate')  
+
+        resp = resp + resp_next
 
         crc = calc_crc_16_ibm(resp[0:-2])
         ba = crc.to_bytes(2, byteorder='little')
@@ -225,8 +236,8 @@ class PwrMeter:
         if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
             raise serial.SerialException("Crc mismatch")
             
-        if resp[3] != len(resp)-6:
-            raise serial.SerialException("wrong response lengt")            
+        # if resp[3] != len(resp)-6:
+        #     raise serial.SerialException("wrong response lengt")            
 
         data_start_pos = 4
 
