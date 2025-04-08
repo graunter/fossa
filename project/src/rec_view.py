@@ -186,7 +186,7 @@ class RecordsFrame(ttk.TTkFrame):
             rd_idx = cur_idx
             pwi_tbl = []
             for i in range(total_cnt):
-                pwi_rec = self.device.rd_month_record(rd_idx)
+                pwi_rec = self.device.rd_m_record(rd_idx)
                 pwi_tbl.append(pwi_rec)
                 rd_idx -=1
                 if rd_idx < 0:

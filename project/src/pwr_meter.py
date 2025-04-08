@@ -175,58 +175,59 @@ class PwrMeter:
     def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
 
-        self.sem.acquire()
-        self.port.write(send_packet)
-        #TODO: read len should be calculated
-        # adr id_cmd _id_obj len crc1 crc2
-        resp = self.port.read(6)
+        with self.sem:
+            self.port.write(send_packet)
+            #TODO: read len should be calculated
+            # adr id_cmd _id_obj len crc1 crc2
+            resp = self.port.read(6)
 
-        #resp = self.port.read(128)
-        #self.sem.release()             
+            #resp = self.port.read(128)
+            #self.sem.release()             
 
-        RespErrCode = {
-            1: "ILLEGAL_FUNCTION"
-            , 2: "ILLEGAL_DATA_ADDRESS"
-            , 3: "ILLEGAL_DATA_VALUE"
-            , 4: "SLAVE_DEVICE_FAILURE"
-            , 5: "ACKNOWLEDGE"
-            , 6: "SLAVE_DEVICE_BUSY"
-            , 7: "MEMORY_ACCESS_ERROR"
-            , 8: "SESSION_CLOSED"
-            , 9: "ACCESS_DENIED"
-            , 10: "ERROR_CRC"
-            , 11: "FRAME_INCORRECT"
-            , 12: "JUMPER_ABSENT"
-            , 13: "PASSW_INCORRECT"
-            , 14: "ACCESS_BLOCKED"
-        }
+            RespErrCode = {
+                1: "ILLEGAL_FUNCTION"
+                , 2: "ILLEGAL_DATA_ADDRESS"
+                , 3: "ILLEGAL_DATA_VALUE"
+                , 4: "SLAVE_DEVICE_FAILURE"
+                , 5: "ACKNOWLEDGE"
+                , 6: "SLAVE_DEVICE_BUSY"
+                , 7: "MEMORY_ACCESS_ERROR"
+                , 8: "SESSION_CLOSED"
+                , 9: "ACCESS_DENIED"
+                , 10: "ERROR_CRC"
+                , 11: "FRAME_INCORRECT"
+                , 12: "JUMPER_ABSENT"
+                , 13: "PASSW_INCORRECT"
+                , 14: "ACCESS_BLOCKED"
+            }
 
-        if no_resp_fl and not resp:
-            raise ProtocolException()
-        
-        if resp == b'':
-            raise ProtocolException("No response from device")
-
-        if len(resp) < 3:
-            raise ProtocolException("Too short response")
-        
-        if (RespCode:=resp[1]) == (0x80 + pdu[1]):
-            if (ErrCode:=resp[2]) in RespErrCode.keys():
-                txt = RespErrCode[ErrCode]
-            else:
-                txt = "Response Err"
+            if no_resp_fl and not resp:
+                return
             
-            raise ProtocolException(f'{txt}')
-        
-        if resp[1] != pdu[1]:
-            raise ProtocolException('Wrong reply code')     
+            if resp == b'':
+                raise ProtocolException("No response from device")
 
-        next_read_size = resp[3]
-        resp_next = self.port.read(next_read_size)   
-        self.sem.release()  
+            if len(resp) < 3:
+                raise ProtocolException("Too short response")
+            
+            if (RespCode:=resp[1]) == (0x80 + pdu[1]):
+                if (ErrCode:=resp[2]) in RespErrCode.keys():
+                    txt = RespErrCode[ErrCode]
+                else:
+                    txt = "Response Err"
+                
+                raise ProtocolException(f'{txt}')
+            
+            if resp[1] != pdu[1]:
+                raise ProtocolException('Wrong reply code')     
+
+            next_read_size = resp[3]
+            resp_next = self.port.read(next_read_size)   
+        
+        # self.sem.release()  
 
         if len(resp_next) != next_read_size:
-            raise ProtocolException('Respons is not compleate')  
+            raise ProtocolException('Respons is not complete')  
 
         resp = resp + resp_next
 
@@ -234,7 +235,7 @@ class PwrMeter:
         ba = crc.to_bytes(2, byteorder='little')
 
         if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
-            raise serial.SerialException("Crc mismatch")
+            raise ProtocolException("Crc mismatch")
             
         # if resp[3] != len(resp)-6:
         #     raise serial.SerialException("wrong response lengt")            
@@ -280,8 +281,9 @@ class PwrMeter:
         scale = 1
         pwr_lst = []
         for i in range(8*4 + 4):
-            pwr = rest[0:4].hex().removesuffix('F')
-            real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
+            real = self.decode_PacDec_to_str(rest[0:4])
+            # pwr = rest[0:4].hex().removesuffix('F')
+            # real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
             pwr_lst.append(real)
             rest = rest[4:]
 
@@ -310,7 +312,7 @@ class PwrMeter:
         in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
         return in_digit
 
-    def rd_month_record(self, idx: int):
+    def rd_m_record(self, idx: int):
 
         # cmd = mconst.GETLISTNE_ID_CMD
         obj_id = mconst.MONTHS_PWR_ID_DATA
@@ -332,8 +334,9 @@ class PwrMeter:
 
         pwr_lst = []
         for i in range(8*4 + 4):
-            pwr = rest[0:4].hex().removesuffix('F')
-            real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
+            real = self.decode_PacDec_to_str(rest[0:4], 2)
+            # pwr = rest[0:4].hex().removesuffix('F')
+            # real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
             pwr_lst.append(real)
             rest = rest[4:]
 
@@ -476,6 +479,18 @@ class PwrMeter:
         years = str(2000 + in_dat[5])
         return [seconds, minutes, hours, days, months, years], in_dat[6:]
 
+    def decode_PacDec_to_str(self, in_dat: bytes, scale = 1):
+        in_digit = in_dat.hex().removesuffix('F')
+        if set(in_digit) =={'0'}:
+            return '0'
+        in_digit = in_digit[::-1]
+        if scale !=1:
+            in_real = in_digit[0:len(in_digit)-scale:] + '.' + in_digit[len(in_digit)-scale:]
+        else:
+            in_real = in_digit
+        
+        txt = str(in_real.lstrip('0'))    
+        return txt       
 
     def rd_str(self, item: ReqId):
         
@@ -527,9 +542,10 @@ class PwrMeter:
             in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
             txt = str(in_real)
         elif this_msg.dtype == DType.PacDecData:
-            in_digit = in_dat.hex().removesuffix('F')
-            in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
-            txt = str(in_real)   
+            txt = self.decode_PacDec_to_str(in_dat, this_msg.scale)
+            # in_digit = in_dat.hex().removesuffix('F')
+            # in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
+            # txt = str(in_real)   
         elif this_msg.dtype == DType.RtcData:
             time_list, _ = self.decode_rtc_to_liststr(in_dat)
             txt = ':'.join(time_list)
