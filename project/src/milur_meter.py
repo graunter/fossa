@@ -2,7 +2,7 @@ import re
 import serial   #pip install pyserial
 from textwrap import wrap
 from enum import auto, Enum
-import my_const as mconst
+import milur_const as mconst
 from collections import namedtuple
 import threading
 import time

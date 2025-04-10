@@ -6,12 +6,12 @@ from collections import defaultdict
 import sys
 import glob
 import serial               #pip install pyserial
-from my_const import *
+from milur_const import *
 import data_req as req
 from hw_frame import HardInfoFrame
 from real_view import RealFrame
-import pwr_meter as mtr
-from pwr_meter import ReqId
+import milur_meter as mtr
+from milur_meter import ReqId
 import sett_view as sview
 import rec_view as rview
 

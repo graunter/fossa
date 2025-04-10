@@ -1,5 +1,5 @@
 import TermTk as ttk
-import pwr_meter as mtr
+import milur_meter as mtr
 
 class DataRequest(ttk.TTkFrame):
      
