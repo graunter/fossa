@@ -31,29 +31,30 @@ def create_packet_from_dat(send_dat: list) -> list:
 class AccessLvl:
     pass
 
-class Data:
-    def __init__(self):
-        value_type = 0
-        value = bytearray()
-        value_len = 0
+# TODO: data model according to power meter user manual
+# class Data:
+#     def __init__(self):
+#         value_type = 0
+#         value = bytearray()
+#         value_len = 0
 
-    def get(self, ObjUID: int):
-        version = 0
-        if ObjUID == 0:
-            if (self.value_len != 4) or (self.value_type==0) or (len(self.value) != 4):
-                #TODO: 
-                pass
-            else:
-                version = int.from_bytes(self.value, byteorder='big', signed=False)
-        else:
-            #TODO
-            pass
-        return version
+#     def get(self, ObjUID: int):
+#         version = 0
+#         if ObjUID == 0:
+#             if (self.value_len != 4) or (self.value_type==0) or (len(self.value) != 4):
+#                 #TODO: 
+#                 pass
+#             else:
+#                 version = int.from_bytes(self.value, byteorder='big', signed=False)
+#         else:
+#             #TODO
+#             pass
+#         return version
 
-    def set(self, ObjUID, val: bytearray):
-        pass
+#     def set(self, ObjUID, val: bytearray):
+#         pass
 
-# class StrData(Enum):
+#  Str Data
 class ReqId(Enum):
     model = auto()
     fw_ver = auto()
@@ -65,7 +66,7 @@ class ReqId(Enum):
     v_scale = auto()
 
 
-#class PacDecData(Enum):
+# PacDecData
     Active_imp_e = auto()
     Active_imp_e_1  = auto()
     Active_imp_e_2 = auto()
@@ -104,7 +105,7 @@ class ReqId(Enum):
     ReAct_exp_e_7 = auto()
     ReAct_exp_e_8 = auto()
 
-#class WordData(Enum):
+#Word Data
     ActPwrA = auto()
     ActPwrB = auto()
     ActPwrC = auto()
@@ -118,7 +119,7 @@ class ReqId(Enum):
     PwrC = auto()
     Pwr = auto()
 
-#class CatenaData(Enum):
+#Caten Data
     UPhA = auto()
     UPhB = auto()
     UPhC = auto()
@@ -128,6 +129,7 @@ class ReqId(Enum):
 
     AIE= auto()       
 
+# parcer types
 class DType(Enum):
     StrData = auto() 
     PacDecData = auto() 
@@ -156,8 +158,9 @@ class PwrMeter:
     def disconnect(self):
         self.port = None        
 
+    # TODO: this check is not protected by semaphore
     def check_resp_on_adr(adr: int, port: serial.Serial) -> bool:
-        send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_ADM_USER], list(mconst.ACCESS_PWD_USER)], [])
+        send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_LVL_USER], list(mconst.ACCESS_PWD_USER)], [])
         send_packet = create_packet_from_dat(send_dat)
 
         try:
@@ -172,6 +175,23 @@ class PwrMeter:
 
         return is_present
 
+    RespErrCode = {
+        1: "ILLEGAL_FUNCTION"
+        , 2: "ILLEGAL_DATA_ADDRESS"
+        , 3: "ILLEGAL_DATA_VALUE"
+        , 4: "SLAVE_DEVICE_FAILURE"
+        , 5: "ACKNOWLEDGE"
+        , 6: "SLAVE_DEVICE_BUSY"
+        , 7: "MEMORY_ACCESS_ERROR"
+        , 8: "SESSION_CLOSED"
+        , 9: "ACCESS_DENIED"
+        , 10: "ERROR_CRC"
+        , 11: "FRAME_INCORRECT"
+        , 12: "JUMPER_ABSENT"
+        , 13: "PASSW_INCORRECT"
+        , 14: "ACCESS_BLOCKED"
+    }
+        
     def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
 
@@ -180,26 +200,6 @@ class PwrMeter:
             #TODO: read len should be calculated
             # adr id_cmd _id_obj len crc1 crc2
             resp = self.port.read(6)
-
-            #resp = self.port.read(128)
-            #self.sem.release()             
-
-            RespErrCode = {
-                1: "ILLEGAL_FUNCTION"
-                , 2: "ILLEGAL_DATA_ADDRESS"
-                , 3: "ILLEGAL_DATA_VALUE"
-                , 4: "SLAVE_DEVICE_FAILURE"
-                , 5: "ACKNOWLEDGE"
-                , 6: "SLAVE_DEVICE_BUSY"
-                , 7: "MEMORY_ACCESS_ERROR"
-                , 8: "SESSION_CLOSED"
-                , 9: "ACCESS_DENIED"
-                , 10: "ERROR_CRC"
-                , 11: "FRAME_INCORRECT"
-                , 12: "JUMPER_ABSENT"
-                , 13: "PASSW_INCORRECT"
-                , 14: "ACCESS_BLOCKED"
-            }
 
             if no_resp_fl and not resp:
                 return
@@ -211,8 +211,8 @@ class PwrMeter:
                 raise ProtocolException("Too short response")
             
             if (RespCode:=resp[1]) == (0x80 + pdu[1]):
-                if (ErrCode:=resp[2]) in RespErrCode.keys():
-                    txt = RespErrCode[ErrCode]
+                if (ErrCode:=resp[2]) in self.RespErrCode.keys():
+                    txt = self.RespErrCode[ErrCode]
                 else:
                     txt = "Response Err"
                 
@@ -226,8 +226,6 @@ class PwrMeter:
 
             #TODO: set timeout to 3.5 chars and read no sumbols
 
-        
-        # self.sem.release()  
 
         if len(resp_next) != next_read_size:
             raise ProtocolException('Respons is not complete')  
@@ -239,9 +237,7 @@ class PwrMeter:
 
         if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
             raise ProtocolException("Crc mismatch")
-            
-        # if resp[3] != len(resp)-6:
-        #     raise serial.SerialException("wrong response lengt")            
+                     
 
         data_start_pos = 4
 
@@ -285,8 +281,6 @@ class PwrMeter:
         pwr_lst = []
         for i in range(8*4 + 4):
             real = self.decode_PacDec_to_str(rest[0:4])
-            # pwr = rest[0:4].hex().removesuffix('F')
-            # real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
             pwr_lst.append(real)
             rest = rest[4:]
 
@@ -316,13 +310,7 @@ class PwrMeter:
         return in_digit
 
     def rd_m_record(self, idx: int):
-
-        # cmd = mconst.GETLISTNE_ID_CMD
         obj_id = mconst.MONTHS_PWR_ID_DATA
-        # send_dat = [self.adr, cmd, obj_id]
-        # in_dat = self.run_request(send_dat)
-        # in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
-
         cmd = mconst.GET_ENTALIST_ID_CMD
 
         b0 = idx & 0xFF
@@ -333,13 +321,11 @@ class PwrMeter:
 
         date_lst, rest = self.decode_timesec_to_liststr(in_dat)
         date_txt = ':'.join( date_lst )
-        scale = 1
-
+       
+        scale = 2
         pwr_lst = []
         for i in range(8*4 + 4):
-            real = self.decode_PacDec_to_str(rest[0:4], 2)
-            # pwr = rest[0:4].hex().removesuffix('F')
-            # real = pwr[-1:scale:-1] + '.' + pwr[scale:0:-1]
+            real = self.decode_PacDec_to_str(rest[0:4], scale)
             pwr_lst.append(real)
             rest = rest[4:]
 
@@ -348,13 +334,12 @@ class PwrMeter:
         return hour_record
             
 
-
     def rd_pwi_record(self, idx: int):
+        # TODO: move ti list init Fn
         # cmd = mconst.LISTINIT_ID_CMD
         # obj_id = mconst.PWI_ID_DATA
         # send_dat = [self.adr, cmd, obj_id]
         # in_dat = self.run_request(send_dat, True)
-
         # time.sleep(2)   
 
         cmd = mconst.getPWIRecord_ID_CMD
@@ -364,15 +349,14 @@ class PwrMeter:
         b1 = (idx >> 8) & 0xFF
 
         send_dat = [self.adr, cmd, obj_id, b0, b1]
-
         in_dat = self.run_request(send_dat)
-
         date_lst, rest = self.decode_time_to_liststr(in_dat)
  
         date_txt = ':'.join( date_lst )
 
         P_sum_in = rest[0:3].hex().removesuffix('F')
         P_sum_out = rest[4:7].hex().removesuffix('F')
+        # TODO: according to protocol must be presented in this response
         # Q_sum_in = rest[8:11].hex().removesuffix('F')
         # Q_sum_out = rest[12:15].hex().removesuffix('F')
 
@@ -384,7 +368,6 @@ class PwrMeter:
         
         return hour_record
             
-
 
     def rd_total_tax_count(self) ->int:
         cmd = mconst.GETLISTNE_ID_CMD
@@ -438,6 +421,7 @@ class PwrMeter:
 
             taxt_tbl.append(this_line)
 
+            # this is an example of empty output - just for reference
             # taxt_tbl = [[] for x in range(5)]
 
         return taxt_tbl
@@ -468,6 +452,7 @@ class PwrMeter:
         months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
         years = str(2000 + in_dat[4])
  
+        # this is an example of empty output - just for reference
         #date_txt = ':'.join( [minutes, hours, days, months, years] )
         return [minutes, hours, days, months, years], in_dat[5:]
 
@@ -482,6 +467,7 @@ class PwrMeter:
         years = str(2000 + in_dat[5])
         return [seconds, minutes, hours, days, months, years], in_dat[6:]
 
+
     def decode_PacDec_to_str(self, in_dat: bytes, scale = 1):
         in_digit = in_dat.hex().removesuffix('F')
         if set(in_digit) =={'0'}:
@@ -495,48 +481,15 @@ class PwrMeter:
         txt = str(in_real.lstrip('0'))    
         return txt       
 
+
     def rd_str(self, item: ReqId):
         
-        Msg = namedtuple("Msg", "dtype id len scale", defaults=(None, None, None, 1))
 
-        trans_str_tbl = { 
-              ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 14)  
-            , ReqId.fw_ver: Msg(DType.StrData, mconst.FW_ID_DATA, 4)
-            , ReqId.serial_num: Msg(DType.StrData, mconst.SN_ID_DATA, 15)
-            , ReqId.prod_date: Msg(DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
-            , ReqId.cur_rate: Msg(DType.DigitData, mconst.RATE_ID_DATA, 1)
-            , ReqId.v_scale: Msg(DType.VScaleData, mconst.SCALE_ID_DATA, 4)
-            , ReqId.i_scale: Msg(DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
-            
-            , ReqId.rtc: Msg(DType.RtcData, mconst.RTC_ID_DATA, 7)
-
-            , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
-            , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
-            , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000)  
-
-  
-            , ReqId.UPhB: Msg(DType.DigitData, mconst.UB_ID_DATA, 3, 1000)
-            , ReqId.IPhB: Msg(DType.DigitData, mconst.IB_ID_DATA, 3, 1000)
-            , ReqId.PwrB: Msg(DType.DigitData, mconst.PB_ID_DATA, 4, 1000)  
-
-            , ReqId.UPhC: Msg(DType.DigitData, mconst.UC_ID_DATA, 3, 1000)
-            , ReqId.IPhC: Msg(DType.DigitData, mconst.IC_ID_DATA, 3, 1000)
-            , ReqId.PwrC: Msg(DType.DigitData, mconst.PC_ID_DATA, 4, 1000)                        
-
-            , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
-            , ReqId.ActPwrB: Msg(DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
-            , ReqId.ActPwrC: Msg(DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
-
-            , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
-
-            , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4)                      
-        }
-
-        if item not in trans_str_tbl.keys():
+        if item not in self.trans_str_tbl.keys():
             # TODO:
             raise ValueError('Request from GUI is not supported!')
 
-        this_msg = trans_str_tbl[item]
+        this_msg = self.trans_str_tbl[item]
 
         in_dat = self.run_request([self.adr, mconst.GET_ID_CMD, this_msg.id])
 
@@ -555,28 +508,57 @@ class PwrMeter:
             in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
             txt = str(in_real)
         elif this_msg.dtype == DType.PacDecData:
-            txt = self.decode_PacDec_to_str(in_dat, this_msg.scale)
-            # in_digit = in_dat.hex().removesuffix('F')
-            # in_real = in_digit[-1:this_msg.scale:-1] + '.' + in_digit[this_msg.scale:0:-1]
-            # txt = str(in_real)   
+            txt = self.decode_PacDec_to_str(in_dat, this_msg.scale)  
         elif this_msg.dtype == DType.RtcData:
             time_list, _ = self.decode_rtc_to_liststr(in_dat)
             txt = ':'.join(time_list)
         elif this_msg.dtype == DType.VScaleData:
             in_digit = in_dat[0:1]
-            digit = int.from_bytes(in_dat, byteorder='little', signed=False)
+            digit = int.from_bytes(in_digit, byteorder='little', signed=False)
             txt = str(digit)
         elif this_msg.dtype == DType.IScaleData:
             in_digit = in_dat[2:3]
             digit = int.from_bytes(in_digit, byteorder='little', signed=False)
             txt = str(digit)              
         else:
-            txt = "Err"
-
-
+            txt = "Data type is not supported"
 
         return txt
         
 
+    Msg = namedtuple("Msg", "dtype id len scale", defaults=(None, None, None, 1))
+
+    trans_str_tbl = { 
+            ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 14)  
+        , ReqId.fw_ver: Msg(DType.StrData, mconst.FW_ID_DATA, 4)
+        , ReqId.serial_num: Msg(DType.StrData, mconst.SN_ID_DATA, 15)
+        , ReqId.prod_date: Msg(DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
+        , ReqId.cur_rate: Msg(DType.DigitData, mconst.RATE_ID_DATA, 1)
+        , ReqId.v_scale: Msg(DType.VScaleData, mconst.SCALE_ID_DATA, 4)
+        , ReqId.i_scale: Msg(DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
+        
+        , ReqId.rtc: Msg(DType.RtcData, mconst.RTC_ID_DATA, 7)
+
+        , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
+        , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
+        , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000)  
+
+
+        , ReqId.UPhB: Msg(DType.DigitData, mconst.UB_ID_DATA, 3, 1000)
+        , ReqId.IPhB: Msg(DType.DigitData, mconst.IB_ID_DATA, 3, 1000)
+        , ReqId.PwrB: Msg(DType.DigitData, mconst.PB_ID_DATA, 4, 1000)  
+
+        , ReqId.UPhC: Msg(DType.DigitData, mconst.UC_ID_DATA, 3, 1000)
+        , ReqId.IPhC: Msg(DType.DigitData, mconst.IC_ID_DATA, 3, 1000)
+        , ReqId.PwrC: Msg(DType.DigitData, mconst.PC_ID_DATA, 4, 1000)                        
+
+        , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
+        , ReqId.ActPwrB: Msg(DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
+        , ReqId.ActPwrC: Msg(DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
+
+        , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
+
+        , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4)                      
+    }
 
 
