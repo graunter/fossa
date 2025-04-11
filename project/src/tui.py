@@ -1,5 +1,5 @@
 import argparse
-from threading import Thread
+from threading import Thread, Semaphore
 import time
 import TermTk as ttk        # pip install pyTermTk
 from collections import defaultdict
@@ -21,6 +21,7 @@ view_frames = defaultdict(list)
 g_current_frame = None
 g_mb_open_btn: ttk.TTkButton
 g_ser: serial.Serial
+g_sema: Semaphore
 g_mb_port_name: ttk.TTkLineEdit
 g_pause_visit_fl = True
 g_read_err_counter = 0
@@ -114,6 +115,7 @@ def on_mb_open_btn():
     global g_read_err_counter
     global g_pull_visit_thrd
     global g_cnt_lst
+    global g_sema
 
     port_name = g_mb_port_name.text()
 
@@ -129,6 +131,7 @@ def on_mb_open_btn():
                 , rtscts=False
                 , dsrdtr=False
             )
+            g_sema = Semaphore()
         else:
             close_serial()
             return
@@ -145,7 +148,7 @@ def on_mb_open_btn():
     if mtr.PwrMeter.check_resp_on_adr(mb_adr, g_ser) == True:
         bg_color = ttk.TTkColor.BG_GREEN
 
-        g_cnt_lst.append(mtr.PwrMeter(mb_adr, g_ser))
+        g_cnt_lst.append(mtr.PwrMeter(mb_adr, g_ser, g_sema))
 
         g_info_frame.set_device(g_cnt_lst[0])
         g_info_frame.on_upd()

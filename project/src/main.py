@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt # pip install paho-mqtt
 from my_config import MyConfig
 import logging
 import json
-from threading import Thread
+from threading import Thread, Semaphore
 from timeit import default_timer as timer
 from milur_meter import PwrMeter
 import serial   #pip install pyserial
@@ -37,7 +37,8 @@ class Fossa:
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
         ser = serial.Serial(port='COM11', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
-        cnt = PwrMeter(21, ser)   
+        sem = Semaphore()
+        cnt = PwrMeter(21, ser, sem)   
         #ver_val, ver_str = cnt.read_version()
         #logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
 

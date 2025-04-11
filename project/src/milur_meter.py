@@ -144,30 +144,36 @@ class ProtocolException(Exception):
         
 class PwrMeter:
 
-    def __init__(self, adr: int, port: serial.Serial):
+    def __init__(self, adr: int, port: serial.Serial, sem: threading.Semaphore):
         self.adr = adr
         self.port = port
         self.err_cnt = 0
+        self.sem = sem
 
-        self.sem = threading.Semaphore()
 
-
-    def link(self, port: serial.Serial):
+    def link(self, port: serial.Serial, sem: threading.Semaphore):
         self.port = port
+        self.sem = sem
 
     def disconnect(self):
-        self.port = None        
+        self.port = None    
+
 
     # TODO: this check is not protected by semaphore
-    def check_resp_on_adr(adr: int, port: serial.Serial) -> bool:
+    def check_resp_on_adr(adr: int, port: serial.Serial, sem: threading.Semaphore = None) -> bool:
         send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_LVL_USER], list(mconst.ACCESS_PWD_USER)], [])
         send_packet = create_packet_from_dat(send_dat)
 
+        #TODO: fast stub
+        if not sem:
+            sem = threading.Semaphore()
+
         try:
-            if not port.is_open:
-                port.open()
-            port.write(send_packet)
-            received = port.read(128)
+            with sem:
+                if not port.is_open:
+                    port.open()
+                port.write(send_packet)
+                received = port.read(128)
         except:
             return False
 
