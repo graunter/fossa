@@ -512,6 +512,28 @@ class PwrMeter:
         in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
         return in_digit
 
+    def rd_holidays_tbl(self):
+        cmd = mconst.GET_ID_CMD
+        obj_id = mconst.HOLIDAYS_ID_DATA
+        send_dat = [self.adr, cmd, obj_id]
+        in_dat = self.run_request(send_dat)
+
+        holidays = []
+        rec_len = 2
+        for idx in range(20):
+            day = int.from_bytes(in_dat[rec_len*idx:rec_len*idx+1], byteorder='little', signed=False)
+            month = int.from_bytes(in_dat[rec_len*idx+1:rec_len*idx+2], byteorder='little', signed=False)
+
+            if day != 0xFF and month != 0xFF:
+                holidays.append([str(day), str(month)])
+            else:
+                break
+        
+        if not holidays:
+            holidays.append(["", ""])
+
+        return holidays
+
 
     def rd_tax_tbl(self, month_num: int):
 

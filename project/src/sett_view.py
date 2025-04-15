@@ -25,6 +25,7 @@ class SettingsFrame(ttk.TTkFrame):
         super().__init__(name="name", **kwargs)
 
 
+        #---> tax table
         self.head_tax_tbl = ['Time', 'Workday', 'Holiday', 'Saturday', 'Sunday'] 
         self.no_tax_tbl = [ ['--:--', '   -   ', '   -   ', '   -   ', '   -   '] ]
 
@@ -42,11 +43,59 @@ class SettingsFrame(ttk.TTkFrame):
 
         self.month_label = ttk.TTkLabel(text = f'{ self.mlst.currentText()}', maxHeight = 3)
 
+        self.tax_frame = ttk.TTkFrame()
+        self.tax_frame.setLayout(ttk.TTkVBoxLayout())
+        self.tax_frame.layout().addWidget(self.mlst)
+        self.tax_frame.layout().addWidget(self.get_tax_btn)
+        self.tax_frame.layout().addWidget(self.month_label)
+        self.tax_frame.layout().addWidget(self.tax_table)
+        #---< tax table
+
+        #---> holidays     
+        self.hol_frame = ttk.TTkFrame()
+        self.hol_frame.setLayout(ttk.TTkVBoxLayout())
+
+
+        self.head_hol_tbl = ['Day', 'Month', ] 
+        self.no_hol_tbl = [ ['--------' for _ in range( len(self.head_hol_tbl) ) ] ]
+
+        hol_tableModel = ttk.TTkTableModelList(data=self.no_hol_tbl, header=self.head_hol_tbl)        
+
+        self.hol_table = ttk.TTkTable(tableModel=hol_tableModel)
+        self.hol_table.resizeRowsToContents()
+        self.hol_table.resizeColumnsToContents()
+
+        self.get_hol_btn = ttk.TTkButton(text='Read from device', border=True, maxHeight = 5 )
+        self.get_hol_btn.clicked.connect(self.on_read_hol_btn)
+
+        self.hol_frame = ttk.TTkFrame(border=True, visible=False)
+        self.hol_frame.setLayout(ttk.TTkVBoxLayout())    
+        self.hol_frame.layout().addWidget(self.get_hol_btn)
+        self.hol_frame.layout().addWidget(self.hol_table)
+
+        #---< holidays
+
+        tbl_tab = ttk.TTkTabWidget(border=False, visible=True)
+        tbl_tab.addTab(self.tax_frame, " tax table ")
+        tbl_tab.addTab(self.hol_frame, " holidays ")
+
+
         self.setLayout(ttk.TTkVBoxLayout())
-        self.layout().addWidget(self.mlst)
-        self.layout().addWidget(self.get_tax_btn)
-        self.layout().addWidget(self.month_label)
-        self.layout().addWidget(self.tax_table)
+        self.layout().addWidget(tbl_tab)        
+
+    def on_read_hol_btn(self):
+        
+        try:
+            hol_tbl = self.device.rd_holidays_tbl()
+        except Exception as e:
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+
+        
+        tableModel = ttk.TTkTableModelList(data=hol_tbl, header=self.head_hol_tbl)
+        self.hol_table.setModel(tableModel)
+        self.hol_table.resizeRowsToContents()
+        self.hol_table.resizeColumnsToContents()
 
     def on_read_tax_btn(self):
        
