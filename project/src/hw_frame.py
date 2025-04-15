@@ -33,6 +33,7 @@ class HardInfoFrame(ttk.TTkFrame):
         def_unit_size = 30
 
         self.items = [
+            
             req.DataRequest(label="Model name", req=lambda dev: dev.rd_str(mtr.ReqId.model))
             , req.DataRequest(label="Serial number", req=lambda dev: dev.rd_str(mtr.ReqId.serial_num))
             , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(mtr.ReqId.prod_date))

@@ -228,9 +228,15 @@ class PwrMeter:
                 raise ProtocolException('Wrong reply code')     
 
             next_read_size = resp[3]
+            if(send_packet[1] == mconst.GET_COLLECTION_ID_CMD):
+                next_read_size +=1
+
             resp_next = self.port.read(next_read_size)   
 
             #TODO: set timeout to 3.5 chars and read no sumbols
+            # resp_extra = self.port.read(3)
+            # if resp_extra:
+            #     raise ProtocolException(f'Extra data on line: {str(resp_extra)}')
 
 
         if len(resp_next) != next_read_size:
@@ -240,16 +246,130 @@ class PwrMeter:
 
         crc = calc_crc_16_ibm(resp[0:-2])
         ba = crc.to_bytes(2, byteorder='little')
-
-        if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
-            raise ProtocolException("Crc mismatch")
-                     
-
+ 
         data_start_pos = 4
 
-        in_data = resp[data_start_pos:len(resp)-2]
+        if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
+            if resp[1] == mconst.GET_COLLECTION_ID_CMD:
+                #TODO: the overall packet seem good
+                # in_data = resp[data_start_pos:len(resp)-1]
+                pass
+            else:
+                raise ProtocolException("Crc mismatch")
+        else:
+            in_data = resp[data_start_pos:len(resp)-2]
+
+
         return in_data
     
+    def rd_split(self) -> list:
+
+        cmd = mconst.GET_COLLECTION_ID_CMD
+        obj_id = 13
+        send_dat = [self.adr, cmd, obj_id, 1, 0]        
+        in_dat = self.run_request(send_dat)
+
+        dlen = 4
+        records = []
+        dat = in_dat
+        for cnt in range(18):
+            records.append( self.decode_PacDec_to_str(dat[cnt*dlen:(cnt+1)*dlen], 3) )
+
+        energy_lst  = [str(item) for item in records]
+
+        dat = in_dat[(cnt+1)*dlen:]
+
+        dlen = 3
+        records = []
+        for cnt in range(6):
+            records.append( digit := int.from_bytes(dat[cnt*dlen:(cnt+1)*dlen], byteorder='little', signed=True)/1000) 
+
+        vA, vB, vC, iA, iB, iC = [str(item) for item in records]
+
+        dat = in_dat[(cnt+1)*dlen:]
+
+        dlen = 4
+        records = []        
+        for cnt in range(9):
+            records.append( self.decode_PacDec_to_str(dat[cnt*dlen:(cnt+1)*dlen], 3) )
+
+        pwr_lst = [str(item) for item in records]
+
+        
+        dat = dat[(cnt+1)*dlen:]
+
+        freq = str(int.from_bytes(dat[0:2], byteorder='little', signed=False)/1000)
+        tax = str(int.from_bytes(dat[2:3], byteorder='little', signed=False))
+        time, _ = self.decode_rtc_to_liststr(dat[3:3+7])
+        model = self.decode_str_to_str(dat[10:10+20])
+        fw_ver = self.decode_str_to_str(dat[30:30+4])
+        v_bat = self.decode_word_to_str(dat[34:34+2], 1000)
+        crc = self.decode_word_to_str(dat[36:36+2])
+        load = str(int.from_bytes(dat[38:38+1], byteorder='little', signed=False))
+        idm = str(int.from_bytes(dat[39:39+1], byteorder='little', signed=False))
+
+
+        dat = dat[40:]
+
+        dlen = 2
+        records = []        
+        for cnt in range(8):
+            records.append( self.decode_word_to_str(dat[cnt*dlen:(cnt+1)*dlen]) )
+
+        pwr_fact_lst = [str(item) for item in records]
+  
+        dat = dat[(cnt+1)*dlen:]
+
+        dlen = 2
+        records = []        
+        for cnt in range(3):
+            records.append( self.decode_word_to_str(dat[cnt*dlen:(cnt+1)*dlen]) )
+
+        ph_angle_lst =  [str(item) for item in records]
+
+        dat = dat[(cnt+1)*dlen:]
+
+        lcd =  self.decode_str_to_str(dat[0:3])
+        phase = str(int.from_bytes(dat[3:4], byteorder='little', signed=False))
+
+
+        load = str(int.from_bytes(dat[38:38+1], byteorder='little', signed=False))
+
+        return energy_lst + [vA, vB, vC, iA, iB, iC] + pwr_lst + [freq, tax, time, model, fw_ver, v_bat, crc, load, id ] + pwr_fact_lst + ph_angle_lst + [lcd, phase]
+
+
+    def rd_momentum(self) -> list:
+        cmd = mconst.GET_COLLECTION_ID_CMD
+        obj_id = 2
+        send_dat = [self.adr, cmd, obj_id, 1, 0]        
+        in_dat = self.run_request(send_dat)
+
+        dlen = 4
+        records = []
+        dat = in_dat
+        for cnt in range(12):
+            records.append( self.decode_PacDec_to_str(dat[cnt*dlen:(cnt+1)*dlen], 3) )
+
+        pA, pB, pC, pSum, qA, qB, qC, qSum, tA, tB, tC, tSum = [str(item) for item in records]
+
+        dat = in_dat[(cnt+1)*dlen:]
+
+        dlen = 3
+        records = []
+        for cnt in range(6):
+            records.append( digit := int.from_bytes(dat[cnt*dlen:(cnt+1)*dlen], byteorder='little', signed=True)/1000) 
+
+        vA, vB, vC, iA, iB, iC = [str(item) for item in records]
+
+
+        dat = dat[(cnt+1)*dlen:]
+
+        freq = str(int.from_bytes(dat[0:2], byteorder='little', signed=False)/1000)
+        tax = str(int.from_bytes(dat[2:3], byteorder='little', signed=False))
+        time, _ = self.decode_rtc_to_liststr(dat[3:3+7])
+
+        return [pA, pB, pC, pSum, qA, qB, qC, qSum, tA, tB, tC, tSum, vA, vB, vC, iA, iB, iC, freq, tax] + [':'.join( time )]
+
     
     def rd_d_tax_current(self) ->int:
         cmd = mconst.GETCURINDEX_ID_CMD
@@ -487,6 +607,21 @@ class PwrMeter:
         txt = str(in_real.lstrip('0'))    
         return txt       
 
+    def decode_word_to_str(self, in_dat: bytes, scale = 1) -> {str, bytes}:
+        dat = in_dat[0:4]
+        digit = int.from_bytes(in_dat, byteorder='little', signed=False)
+        txt = str(digit)    
+        return txt, in_dat[4:]
+
+    def decode_str_to_str(self, in_dat: bytes) -> str:
+        i = in_dat.find(b'\x00')
+        if i == -1:
+            re_in_dat = in_dat
+        else:
+            re_in_dat = in_dat[:i]
+        in_str = re_in_dat.decode("utf-8")
+        txt = in_str.rstrip('\0')
+        return txt
 
     def rd_str(self, item: ReqId):
         
@@ -502,13 +637,7 @@ class PwrMeter:
         txt = "NA"
 
         if this_msg.dtype == DType.StrData:
-            i = in_dat.find(b'\x00')
-            if i == -1:
-                re_in_dat = in_dat
-            else:
-                re_in_dat = in_dat[:i]
-            in_str = re_in_dat.decode("utf-8")
-            txt = in_str.rstrip('\0')
+            txt = self.decode_str_to_str(in_dat)
         elif this_msg.dtype == DType.DigitData:
             in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
             in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
@@ -535,7 +664,7 @@ class PwrMeter:
     Msg = namedtuple("Msg", "dtype id len scale", defaults=(None, None, None, 1))
 
     trans_str_tbl = { 
-            ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 14)  
+          ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 14)  
         , ReqId.fw_ver: Msg(DType.StrData, mconst.FW_ID_DATA, 4)
         , ReqId.serial_num: Msg(DType.StrData, mconst.SN_ID_DATA, 15)
         , ReqId.prod_date: Msg(DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
