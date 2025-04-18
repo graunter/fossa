@@ -79,9 +79,22 @@ class PwrMeter:
 
         send_dat = [self.adr] + [mconst.AOPEN_ID_CMD] + [lvl] + pwd
 
+
         # TODO: There is no clear secription for 'open' respose
         # may be standard error processing over exeption will be enought
-        self.run_request(send_dat)
+        send_packet = create_packet_from_dat(send_dat) 
+
+        with self.sem:
+            self.port.write(send_packet)
+            #TODO: read len should be calculated
+            # adr id_cmd crc1 crc2
+            resp = self.port.read(10)
+            
+            if len(resp) != 4:
+            #     raise ProtocolException("Too short response for login")
+                pass
+            
+
 
 
 
@@ -627,7 +640,7 @@ class PwrMeter:
 
         , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
 
-        , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4)                      
+        , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4, 2)                      
     }
 
 

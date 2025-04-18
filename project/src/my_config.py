@@ -80,7 +80,18 @@ class MyConfig(metaclass=MySingletone):
     def extract_config(self, CfgData: list):
        
         self.extract_connection(CfgData)
-        self.extract_misc_conf(CfgData)        
+        self.extract_misc_conf(CfgData)  
+        self.extract_milurs(CfgData)      
+
+    def extract_milurs(self, CfgData):
+        MilurCfg = CfgData.get("milur", {})
+
+        if not MilurCfg: return
+
+        self.milur_topic = MilurCfg.get("topic", "Counters")
+        self.milur_port = MilurCfg.get("port", "")
+        self.adr_lst = MilurCfg.get("address", [])
+
 
 
     def extract_misc_conf(self, CfgData: list):

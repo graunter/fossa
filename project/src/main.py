@@ -7,8 +7,11 @@ import logging
 import json
 from threading import Thread, Semaphore
 from timeit import default_timer as timer
-from .emeters.milur_meter import PwrMeter
+from emeters.milur_meter import PwrMeter
+from milur_meter_const import ReqId
+from milur_const import PWD_LEN, ACCESS_PWD_USER, ACCESS_LVL_USER
 import serial   #pip install pyserial
+from typing import List
 
 
 verbose = False
@@ -25,9 +28,11 @@ class Fossa:
         self.pull_pins_thrd = None
         self.pull_blocks_thrd = None
         self.cfg = Cfg
+        self.pwr_mtr_lst = []
+        self.client = None
 
 
-        logging.debug(f'Fossa strted')
+        logging.debug(f'Fossa started')
         self.status_timer_begin = 0
 
     def signal_handler(self, signal, frame):
@@ -36,9 +41,36 @@ class Fossa:
 
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
-        ser = serial.Serial(port='COM11', baudrate=9600, bytesize=8, parity='N', stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
-        sem = Semaphore()
-        cnt = PwrMeter(21, ser, sem)   
+        port_name = self.cfg.milur_port
+        try:
+            ser = serial.Serial(                
+                port=str(port_name)
+                , baudrate=9600
+                , bytesize=8
+                , parity='N'
+                , stopbits=1
+                , timeout=0.1
+                , rtscts=False
+                , dsrdtr=False
+            )
+            # ser.open()
+            sem = Semaphore()
+        except Exception as e:
+            logging.error(f'Cant open port {port_name} - exited: ' + str(e))
+            if self.client: self.client.disconnect()
+            exit(1)
+
+
+        self.pwr_mtr_lst = []
+        for adr in self.cfg.adr_lst:
+            try:
+                cnt = PwrMeter(adr, ser, sem)  
+                logging.info(f'Connected to adr {adr}')
+                cnt.login(ACCESS_LVL_USER, ACCESS_PWD_USER)
+                self.pwr_mtr_lst.append(cnt)
+            except Exception as e:
+                logging.error(f'Cant connect to adr {adr} - scipped: ' + str(e))
+         
         #ver_val, ver_str = cnt.read_version()
         #logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
 
@@ -50,6 +82,7 @@ class Fossa:
             logging.debug(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
             return
 
+        self.client = client
         logging.debug("Connected with result code "+str(reason_code))
 
         self.status_timer_begin = timer()
@@ -77,17 +110,22 @@ class Fossa:
         while True:
             time.sleep(Cfg.pull_period_ms/1000)   
             if not self.pause_blocks_fl:
-                for one_block in self.block_lst:
+                for one_dev in self.pwr_mtr_lst:
+                    try:
+                        active_in_pwr_sum = one_dev.rd_str(ReqId.Active_imp_e)
+                        topic =  self.cfg.milur_topic + '/' + str(one_dev.adr) + '/SumInPwr' 
+                        message = str(active_in_pwr_sum)
+                        self.client.publish( topic, message)
+                    except Exception as e:
+                        logging.error(f'Cant read for adr {one_dev.adr}: ' + str(e))
 
-                    if is_upd := one_block.upd_state():
-                        one_block.send_state()
-                    elif False == self.cfg.changes_only:
-                        one_block.send_state()
+                    # time.sleep(0.5)
+                    time.sleep(1000/9600)
 
-                    if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
-                        if ( (the_time:=timer()) -self.status_timer_begin) > re_time:
-                            one_block.send_state()
-                            self.status_timer_begin = the_time
+                    # if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
+                    #     if ( (the_time:=timer()) -self.status_timer_begin) > re_time:
+                    #         one_block.send_state()
+                    #         self.status_timer_begin = the_time
 
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
