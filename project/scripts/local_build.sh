@@ -54,7 +54,8 @@ cmd1="--add-data config.yaml:."
 cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
 cmd4="--hidden-import=_cffi_backend"
-pyinstaller --onefile --clean -y -n $EXE_NAME $cmd2 $cmd3 $cmd4 $BUILD_PATH/main.py
+pyinstaller --debug all ---onefile --clean -y -n $EXE_NAME $cmd2 $cmd3 $cmd4 $BUILD_PATH/main.py
+#python3 -m PyInstaller --onefile -y -n '$EXE_NAME' $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py
 
 echo "coping result to local path..."
 EXE_OUTPUT_PATH="$PACKAGE_PATH/opt/$PROJECT_NAME"

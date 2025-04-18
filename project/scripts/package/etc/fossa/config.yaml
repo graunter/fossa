@@ -1,13 +1,17 @@
 broker:
-    host: "localhost"
-    port: 1883
-    user: ""
-    password: ""
+  host: "localhost"
+  port: 1883
+  user: ""
+  password: ""
 
-# Общие настройки (по умолчанию) для всех объектов приложения
 cfg:
-  pool_period_ms: 100           # период опроса контактов
-  changes_only: True            # передавать на брокер только изменение состояния
-  status_period_sec: 600        # период принудительной передачи текущего состояния
+  pull_period_ms: 20000
+  changes_only: False
+  status_period_sec: 10
 
-  
+milur:
+  topic: "Counters"
+  port: "/dev/ttyRS485-1"
+  address:
+    - 21
+    - 23

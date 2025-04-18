@@ -55,7 +55,8 @@ cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
 cmd4="-d all"
 cmd5="--hidden-import=_cffi_backend"
-cmd="pyinstaller --onefile -y -n '$EXE_NAME' $cmd1 $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py" 
+#cmd="pyinstaller --onefile -y -n '$EXE_NAME' $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py" 
+cmd="python3 -m PyInstaller --onefile -y -n '$EXE_NAME' $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py"
 echo $cmd
 sshpass -p $BUILD_PLATFORM_PASS ssh $BUILD_USER@$BUILD_PLATFORM_ADDRESS -p $BUILD_PLATFORM_PORT "$cmd" 
 

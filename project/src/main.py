@@ -8,8 +8,8 @@ import json
 from threading import Thread, Semaphore
 from timeit import default_timer as timer
 from emeters.milur_meter import PwrMeter
-from milur_meter_const import ReqId
-from milur_const import PWD_LEN, ACCESS_PWD_USER, ACCESS_LVL_USER
+from emeters.milur_meter_const import ReqId
+from emeters.milur_const import PWD_LEN, ACCESS_PWD_USER, ACCESS_LVL_USER
 import serial   #pip install pyserial
 from typing import List
 
@@ -74,7 +74,9 @@ class Fossa:
         #ver_val, ver_str = cnt.read_version()
         #logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
 
-    def on_connect(self, client, userdata, connect_flags, reason_code, properties):
+    # def on_connect(self, client, userdata, connect_flags, reason_code, properties):
+    def on_connect(self, client, userdata, connect_flags, reason_code):
+
         # Подписка при подключении означает, что если было потеряно соединение
         # и произошло переподключение - то подписка будет обновлена
 
@@ -174,7 +176,8 @@ if __name__ == "__main__":
 
     fossa.on_start()
 
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    # client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client = mqtt.Client()
     client.on_connect = fossa.on_connect
     client.on_message = fossa.on_message
     client.on_disconnect = lambda client, userdata, rc: fossa.on_disconnect() 
