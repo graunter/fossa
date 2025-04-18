@@ -37,6 +37,10 @@ class MyConfig(metaclass=MySingletone):
         self.blocks_cfg["common_path"] = DEFAULT_COMMON_PATH_TOPIC
         self.blocks_cfg["repetition_time_sec"] = DEFAULT_REPETITION_TIME
         self.blocks_cfg["reset_to_def_topic"] = ""
+
+        self.milur_topic = "Counters"
+        self.milur_port = ""
+        self.adr_lst = []
      
         logging.debug("Load of configuration" )
         
