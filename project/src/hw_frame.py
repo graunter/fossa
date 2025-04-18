@@ -1,9 +1,10 @@
 import TermTk as ttk        # pip install pyTermTk
 from collections import defaultdict
-from milur_const import *
+from emeters.milur_const import *
 import data_req as req
-import milur_meter as mtr
-from milur_meter import ReqId
+import emeters.milur_meter as mtr
+# from emeters.milur_meter_const import ReqId
+from milur_meter_const import ReqId
 
 
 
@@ -34,12 +35,12 @@ class HardInfoFrame(ttk.TTkFrame):
 
         self.items = [
             
-            req.DataRequest(label="Model name", req=lambda dev: dev.rd_str(mtr.ReqId.model))
-            , req.DataRequest(label="Serial number", req=lambda dev: dev.rd_str(mtr.ReqId.serial_num))
-            , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(mtr.ReqId.prod_date))
-            , req.DataRequest(label="FW version", req=lambda dev: dev.rd_str(mtr.ReqId.fw_ver))
-            , req.DataRequest(label="Current scale", req=lambda dev: dev.rd_str(mtr.ReqId.i_scale))
-            , req.DataRequest(label="Voltage scale", req=lambda dev: dev.rd_str(mtr.ReqId.v_scale))        
+            req.DataRequest(label="Model name", req=lambda dev: dev.rd_str(ReqId.model))
+            , req.DataRequest(label="Serial number", req=lambda dev: dev.rd_str(ReqId.serial_num))
+            , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(ReqId.prod_date))
+            , req.DataRequest(label="FW version", req=lambda dev: dev.rd_str(ReqId.fw_ver))
+            , req.DataRequest(label="Current scale", req=lambda dev: dev.rd_str(ReqId.i_scale))
+            , req.DataRequest(label="Voltage scale", req=lambda dev: dev.rd_str(ReqId.v_scale))        
         ]
 
         self.setLayout(ttk.TTkVBoxLayout())

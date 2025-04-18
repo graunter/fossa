@@ -7,10 +7,11 @@ from collections import defaultdict
 import sys
 import glob
 import serial               #pip install pyserial
-from milur_const import *
+from emeters.milur_const import *
 import data_req as req
-import milur_meter as mtr
-from milur_meter import ReqId
+import emeters.milur_meter as mtr
+# from emeters.milur_meter_const import ReqId
+from milur_meter_const import ReqId
 
 
 

@@ -1,11 +1,9 @@
-import re
+
 import serial   #pip install pyserial
-from textwrap import wrap
-from enum import auto, Enum
 import milur_const as mconst
+from  milur_meter_const import *
 from collections import namedtuple
 import threading
-import time
 
 
 def calc_crc_16_ibm(msg) -> int:
@@ -27,116 +25,6 @@ def create_packet_from_dat(send_dat: list) -> list:
     send_packet = send_dat + [ba[0]] + [ba[1]]
     return send_packet
 
-
-class AccessLvl:
-    pass
-
-# TODO: data model according to power meter user manual
-# class Data:
-#     def __init__(self):
-#         value_type = 0
-#         value = bytearray()
-#         value_len = 0
-
-#     def get(self, ObjUID: int):
-#         version = 0
-#         if ObjUID == 0:
-#             if (self.value_len != 4) or (self.value_type==0) or (len(self.value) != 4):
-#                 #TODO: 
-#                 pass
-#             else:
-#                 version = int.from_bytes(self.value, byteorder='big', signed=False)
-#         else:
-#             #TODO
-#             pass
-#         return version
-
-#     def set(self, ObjUID, val: bytearray):
-#         pass
-
-#  Str Data
-class ReqId(Enum):
-    model = auto()
-    fw_ver = auto()
-    serial_num = auto()
-    prod_date = auto()
-    rtc = auto()
-    cur_rate = auto()
-    i_scale = auto()
-    v_scale = auto()
-
-
-# PacDecData
-    Active_imp_e = auto()
-    Active_imp_e_1  = auto()
-    Active_imp_e_2 = auto()
-    Active_imp_e_3 = auto()
-    Active_imp_e_4 = auto()
-    Active_imp_e_5 = auto()
-    Active_imp_e_6 = auto()
-    Active_imp_e_7 = auto()
-    Active_imp_e_8 = auto()
-    ReAct_imp_e = auto()
-    ReAct_imp_e_1  = auto()
-    ReAct_imp_e_2 = auto()
-    ReAct_imp_e_3 = auto()
-    ReAct_imp_e_4 = auto()
-    ReAct_imp_e_5 = auto()
-    ReAct_imp_e_6 = auto()
-    ReAct_imp_e_7 = auto()
-    ReAct_imp_e_8 = auto()
-        
-    Active_exp_e = auto()
-    Active_exp_e_1  = auto()
-    Active_exp_e_2 = auto()
-    Active_exp_e_3 = auto()
-    Active_exp_e_4 = auto()
-    Active_exp_e_5 = auto()
-    Active_exp_e_6 = auto()
-    Active_exp_e_7 = auto()
-    Active_exp_e_8 = auto()
-    ReAct_exp_e = auto()
-    ReAct_exp_e_1  = auto()
-    ReAct_exp_e_2 = auto()
-    ReAct_exp_e_3 = auto()
-    ReAct_exp_e_4 = auto()
-    ReAct_exp_e_5 = auto()
-    ReAct_exp_e_6 = auto()
-    ReAct_exp_e_7 = auto()
-    ReAct_exp_e_8 = auto()
-
-#Word Data
-    ActPwrA = auto()
-    ActPwrB = auto()
-    ActPwrC = auto()
-    ActPwr = auto()
-    ReActPwrA = auto()
-    ReActPwrB = auto()
-    ReActPwrC = auto()
-    ReActPwr = auto()
-    PwrA = auto()
-    PwrB = auto()
-    PwrC = auto()
-    Pwr = auto()
-
-#Caten Data
-    UPhA = auto()
-    UPhB = auto()
-    UPhC = auto()
-    IPhA = auto()
-    IPhB = auto()
-    IPhC = auto()
-
-    AIE= auto()       
-
-# parcer types
-class DType(Enum):
-    StrData = auto() 
-    PacDecData = auto() 
-    DigitData = auto() 
-    RtcData = auto()
-    VScaleData = auto()
-    IScaleDate = auto()
 
 
 class ProtocolException(Exception):
@@ -160,6 +48,7 @@ class PwrMeter:
 
 
     # TODO: this check is not protected by semaphore
+    @staticmethod
     def check_resp_on_adr(adr: int, port: serial.Serial, sem: threading.Semaphore = None) -> bool:
         send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_LVL_USER], list(mconst.ACCESS_PWD_USER)], [])
         send_packet = create_packet_from_dat(send_dat)
@@ -180,6 +69,29 @@ class PwrMeter:
         is_present = True if received != b'' else False
 
         return is_present
+    
+    # TODO: an interface obj for lvl is required
+    def login(self, lvl: int, pwd: list):
+        if len(pwd) > mconst.PWD_LEN:
+            raise ProtocolException("Very long password")
+        else:
+            pwd = pwd[:mconst.PWD_LEN] + [0 for _ in range(mconst.PWD_LEN - len(pwd))]
+
+        send_dat = [self.adr] + [mconst.AOPEN_ID_CMD] + [lvl] + pwd
+
+        # TODO: There is no clear secription for 'open' respose
+        # may be standard error processing over exeption will be enought
+        self.run_request(send_dat)
+
+
+
+    def logout(self) -> bool:
+        send_dat = [self.adr] + [mconst.ARELEASE_ID_CMD]
+
+        # TODO: There is no clear secription for 'releare' respose
+        # may be standard error processing over exeption will be enought
+        self.run_request(send_dat, True)
+
 
     RespErrCode = {
         1: "ILLEGAL_FUNCTION"

@@ -1,11 +1,10 @@
 import TermTk as ttk        # pip install pyTermTk
 from collections import defaultdict
-from milur_const import *
+# from emeters.milur_const import *
 import data_req as req
-import milur_meter as mtr
-from milur_meter import ReqId
-
-
+import emeters.milur_meter as mtr
+from milur_meter_const import ReqId
+# from emeters.milur_meter_const import ReqId
 
 class RealFrame(ttk.TTkFrame):
 

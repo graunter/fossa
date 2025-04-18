@@ -7,7 +7,7 @@ import logging
 import json
 from threading import Thread, Semaphore
 from timeit import default_timer as timer
-from milur_meter import PwrMeter
+from .emeters.milur_meter import PwrMeter
 import serial   #pip install pyserial
 
 
