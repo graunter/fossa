@@ -10,8 +10,7 @@ import serial               #pip install pyserial
 from emeters.milur_const import *
 import data_req as req
 import emeters.milur_meter as mtr
-# from emeters.milur_meter_const import ReqId
-from milur_meter_const import ReqId
+from emeters.milur_meter_const import ReqId
 
 
 
