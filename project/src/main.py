@@ -8,7 +8,7 @@ import json
 from threading import Thread, Semaphore
 from timeit import default_timer as timer
 from emeters.milur_meter import PwrMeter
-from emeters.milur_meter_const import ReqId
+import emeters.milur_meter_const as mmc
 from emeters.milur_const import PWD_LEN, ACCESS_PWD_USER, ACCESS_LVL_USER
 import serial   #pip install pyserial
 from typing import List
@@ -30,6 +30,7 @@ class Fossa:
         self.cfg = Cfg
         self.pwr_mtr_lst = []
         self.client = None
+        self.ser = None
 
 
         logging.debug(f'Fossa started')
@@ -43,7 +44,7 @@ class Fossa:
     def on_start(self):
         port_name = self.cfg.milur_port
         try:
-            ser = serial.Serial(                
+            self.ser = serial.Serial(                
                 port=str(port_name)
                 , baudrate=9600
                 , bytesize=8
@@ -54,7 +55,7 @@ class Fossa:
                 , dsrdtr=False
             )
             # ser.open()
-            sem = Semaphore()
+            self.sem = Semaphore()
         except Exception as e:
             logging.error(f'Cant open port {port_name} - exited: ' + str(e))
             if self.client: self.client.disconnect()
@@ -64,7 +65,7 @@ class Fossa:
         self.pwr_mtr_lst = []
         for adr in self.cfg.adr_lst:
             try:
-                cnt = PwrMeter(adr, ser, sem)  
+                cnt = PwrMeter(adr, self.ser, self.sem)  
                 logging.info(f'Connected to adr {adr}')
                 cnt.login(ACCESS_LVL_USER, ACCESS_PWD_USER)
                 self.pwr_mtr_lst.append(cnt)
@@ -104,30 +105,44 @@ class Fossa:
             for OneComp in CompLst:
                 OneComp.on_disconnect()
 
+    def pull_action(self):
+
+        if not self.ser:
+            logging.error(f'No serial port')
+        elif not self.ser.is_open:
+            try:
+                self.ser.open()
+            except Exception as e:
+                logging.error(f'Cant reopen serial port {self.cfg.port}: ' + str(e))
+            return
+
+        for one_dev in self.pwr_mtr_lst:
+            try:
+                active_in_pwr_sum = one_dev.rd_str(mmc.ReqId.Active_imp_e)
+                topic =  self.cfg.milur_topic + '/' + str(one_dev.adr) + '/SumInPwr' 
+                message = str(active_in_pwr_sum)
+                self.client.publish( topic, message)
+            except Exception as e:
+                logging.error(f'Cant read for adr {one_dev.adr}: ' + str(e))
+
+            # time.sleep(0.5)
+            time.sleep(1000/9600)
+
+            # if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
+            #     if ( (the_time:=timer()) -self.status_timer_begin) > re_time:
+            #         one_block.send_state()
+            #         self.status_timer_begin = the_time
+
 
     def on_blocks_pull(self):
         #TODO: may be could be faster
         re_time = self.cfg.blocks_cfg["repetition_time_sec"] if self.cfg.blocks_cfg["repetition_time_sec"]>0 else 1
         
-        while True:
-            time.sleep(Cfg.pull_period_ms/1000)   
+        while True:  
             if not self.pause_blocks_fl:
-                for one_dev in self.pwr_mtr_lst:
-                    try:
-                        active_in_pwr_sum = one_dev.rd_str(ReqId.Active_imp_e)
-                        topic =  self.cfg.milur_topic + '/' + str(one_dev.adr) + '/SumInPwr' 
-                        message = str(active_in_pwr_sum)
-                        self.client.publish( topic, message)
-                    except Exception as e:
-                        logging.error(f'Cant read for adr {one_dev.adr}: ' + str(e))
-
-                    # time.sleep(0.5)
-                    time.sleep(1000/9600)
-
-                    # if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
-                    #     if ( (the_time:=timer()) -self.status_timer_begin) > re_time:
-                    #         one_block.send_state()
-                    #         self.status_timer_begin = the_time
+                self.pull_action()
+            
+            time.sleep(Cfg.pull_period_ms/1000) 
 
 
     def on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):

@@ -1,7 +1,7 @@
 
 import serial   #pip install pyserial
 import milur_const as mconst
-from  milur_meter_const import *
+from  emeters.milur_meter_const import *
 from collections import namedtuple
 import threading
 

@@ -11,7 +11,9 @@ cfg:
 
 milur:
   topic: "Counters"
-  port: "COM15"
+  port: "/dev/ttyUSB0"
+  #port: "/dev/ttyRS485-1"
+  #port: "COM15"
   address:
     - 21
     - 23
