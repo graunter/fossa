@@ -12,6 +12,7 @@ import emeters.milur_meter_const as mmc
 from emeters.milur_const import PWD_LEN, ACCESS_PWD_USER, ACCESS_LVL_USER
 import serial   #pip install pyserial
 from typing import List
+from sys import exit
 
 
 verbose = False

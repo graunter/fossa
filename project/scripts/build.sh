@@ -45,18 +45,18 @@ EXE_NAME="$PROJECT_NAME"
 
 
 #copy source to build platform:
-cmd="mkdir -p $BUILD_PATH"
+cmd="rm -r $BUILD_PATH; mkdir -p $BUILD_PATH"
 sshpass -p $BUILD_PLATFORM_PASS ssh $BUILD_USER@$BUILD_PLATFORM_ADDRESS -p $BUILD_PLATFORM_PORT "$cmd" 
-sshpass -p $BUILD_PLATFORM_PASS scp -P $BUILD_PLATFORM_PORT ../src/*.* $BUILD_USER@$BUILD_PLATFORM_ADDRESS:$BUILD_PATH
+sshpass -p $BUILD_PLATFORM_PASS scp -P $BUILD_PLATFORM_PORT -r ../src/* $BUILD_USER@$BUILD_PLATFORM_ADDRESS:$BUILD_PATH
 
 #compile source
-cmd1="--add-data \"config.yaml:.\""
+cmd1="-p $BUILD_PATH/src/emeters -p $BUILD_PATH/src"
 cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
-cmd4="-d all"
-cmd5="--hidden-import=_cffi_backend"
-#cmd="pyinstaller --onefile -y -n '$EXE_NAME' $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py" 
-cmd="python3 -m PyInstaller --onefile -y -n '$EXE_NAME' $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py"
+cmd4="--hidden-import=emeters"
+cmd5="--debug all"
+cmd="pyinstaller --onefile -y -n $EXE_NAME $cmd1 $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py" 
+#cmd="python3 -m PyInstaller --onefile -y -n $EXE_NAME $cmd1 $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py"
 echo $cmd
 sshpass -p $BUILD_PLATFORM_PASS ssh $BUILD_USER@$BUILD_PLATFORM_ADDRESS -p $BUILD_PLATFORM_PORT "$cmd" 
 

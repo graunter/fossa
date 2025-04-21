@@ -12,7 +12,7 @@ from hw_frame import HardInfoFrame
 from real_view import RealFrame
 import emeters.milur_meter as mtr
 # from emeters.milur_meter_const import ReqId
-from milur_meter_const import ReqId
+from emeters.milur_meter_const import ReqId
 import sett_view as sview
 import rec_view as rview
 
@@ -407,6 +407,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', help='Full Screen (default)', action='store_true')
     parser.add_argument('-w', help='Windowed',    action='store_true')
+    parser.add_argument('-v', '--verbose', dest='verbose', action="store_true", default=False,
+                    help='Enable debug messages.')    
+    parser.add_argument('-c', '--config', dest='cfg_file_name', action="store", default=False,
+                    help='Single config file for this app instance.')    
     args = parser.parse_args()
     windowed = args.w
     windowed = False

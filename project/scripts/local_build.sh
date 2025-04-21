@@ -50,12 +50,14 @@ cp -r ../src/* $BUILD_PATH
 
 
 #compile source
-cmd1="--add-data config.yaml:."
+cmd1="-p ../src/emeters"
 cmd2="--distpath $DIST_PATH"
 cmd3="--specpath $BUILD_PATH"
-cmd4="--hidden-import=_cffi_backend"
-pyinstaller --debug all ---onefile --clean -y -n $EXE_NAME $cmd2 $cmd3 $cmd4 $BUILD_PATH/main.py
-#python3 -m PyInstaller --onefile -y -n '$EXE_NAME' $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py
+cmd4="--hidden-import=emeters"
+cmd5="--debug all"
+pyinstaller --onefile -y -n $EXE_NAME $cmd1 $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py
+# python3 -m PyInstaller --onefile -y -n $EXE_NAME $cmd1 $cmd2 $cmd3 $cmd4 $cmd5 --clean $BUILD_PATH/main.py
+
 
 echo "coping result to local path..."
 EXE_OUTPUT_PATH="$PACKAGE_PATH/opt/$PROJECT_NAME"
