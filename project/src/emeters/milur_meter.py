@@ -645,6 +645,8 @@ class PwrMeter:
         , ReqId.ActPwrC: Msg(DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
 
         , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
+        
+        , ReqId.ReActPwr: Msg(DType.DigitData, mconst.RP_ID_DATA, 4, 1000)   
 
         , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4, 2)                      
     }

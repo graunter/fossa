@@ -43,6 +43,7 @@ class RealFrame(ttk.TTkFrame):
             , req.DataRequest(label="Calc day", unit="date", req=lambda dev: dev.rd_str(ReqId.calc_day))            
 
             , req.DataRequest(label="Active power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwr))
+            , req.DataRequest(label="ReActive power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ReActPwr))            
             , req.DataRequest(label="Active in energy sum", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
 
         ]
