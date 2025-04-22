@@ -589,6 +589,10 @@ class PwrMeter:
             in_digit = int.from_bytes(in_dat, byteorder='little', signed=True)
             in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
             txt = str(in_real)
+        elif this_msg.dtype == DType.UDigitData:
+            in_digit = int.from_bytes(in_dat, byteorder='little', signed=False)
+            in_real = in_digit / this_msg.scale if this_msg.scale != 1 else in_digit
+            txt = str(in_real)            
         elif this_msg.dtype == DType.PacDecData:
             txt = self.decode_PacDec_to_str(in_dat, this_msg.scale)  
         elif this_msg.dtype == DType.RtcData:
@@ -616,10 +620,12 @@ class PwrMeter:
         , ReqId.serial_num: Msg(DType.StrData, mconst.SN_ID_DATA, 15)
         , ReqId.prod_date: Msg(DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
         , ReqId.cur_rate: Msg(DType.DigitData, mconst.RATE_ID_DATA, 1)
+        , ReqId.freq: Msg(DType.UDigitData, mconst.FREQ_ID_DATA, 2, 1000)
         , ReqId.v_scale: Msg(DType.VScaleData, mconst.SCALE_ID_DATA, 4)
         , ReqId.i_scale: Msg(DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
         
         , ReqId.rtc: Msg(DType.RtcData, mconst.RTC_ID_DATA, 7)
+        , ReqId.calc_day: Msg(DType.DigitData, mconst.CALC_DAY_ID_DATA, 1)
 
         , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
         , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)

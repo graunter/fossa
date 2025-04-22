@@ -33,7 +33,9 @@ class ReqId(Enum):
     serial_num = auto()
     prod_date = auto()
     rtc = auto()
+    calc_day = auto()
     cur_rate = auto()
+    freq = auto()
     i_scale = auto()
     v_scale = auto()
 
@@ -106,6 +108,7 @@ class DType(Enum):
     StrData = auto() 
     PacDecData = auto() 
     DigitData = auto() 
+    UDigitData = auto()     
     RtcData = auto()
     VScaleData = auto()
     IScaleDate = auto()

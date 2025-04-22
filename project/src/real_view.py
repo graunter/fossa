@@ -27,6 +27,7 @@ class RealFrame(ttk.TTkFrame):
         self.g_view_items = [
             req.DataRequest(label="RTC", req=lambda dev: dev.rd_str(ReqId.rtc))
             , req.DataRequest(label="Rate", req=lambda dev: dev.rd_str(ReqId.cur_rate))
+            , req.DataRequest(label="Frequency", req=lambda dev: dev.rd_str(ReqId.freq))
             , req.DataRequest(label="A Phase voltage", unit="V", req=lambda dev: dev.rd_str(ReqId.UPhA))
             , req.DataRequest(label="A Phase current", unit="A", req=lambda dev: dev.rd_str(ReqId.IPhA))
             , req.DataRequest(label="A Phase active power", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrA))
@@ -39,7 +40,8 @@ class RealFrame(ttk.TTkFrame):
             , req.DataRequest(label="C Phase current", unit="A", req=lambda dev: dev.rd_str(ReqId.IPhC))
             , req.DataRequest(label="C Phase active power", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrC))
 
-            
+            , req.DataRequest(label="Calc day", unit="date", req=lambda dev: dev.rd_str(ReqId.calc_day))            
+
             , req.DataRequest(label="Active power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwr))
             , req.DataRequest(label="Active in energy sum", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
 
