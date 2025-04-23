@@ -127,7 +127,7 @@ class SettingsFrame(ttk.TTkFrame):
                     #todo
                     pass
 
-            time.sleep(0.2)   
+            time.sleep(0.1)   
 
 
     def on_read_hol_btn(self):
@@ -158,10 +158,10 @@ class SettingsFrame(ttk.TTkFrame):
             self.pause_visit_fl = False            
         except Exception as e:
             # TODO: unexpected error sometime happened
-            # err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
-            # ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
             self.pause_visit_fl = False  
-            pass
+            
 
     def on_read_tax_btn(self):
        

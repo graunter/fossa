@@ -155,6 +155,8 @@ class PwrMeter:
             if len(resp) < 3:
                 raise ProtocolException("Too short response")
             
+            in_data = []
+            
             resp_with_len = [
                 mconst.GET_ID_CMD
                 , mconst.LISTINIT_ID_CMD
@@ -236,8 +238,14 @@ class PwrMeter:
 
                               
             elif pdu[1] == mconst.SETRTC_ID_CMD:
-                next_read_size = 0
-                in_data = []
+                if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
+                    if (ErrCode:=resp[2]) in self.RespErrCode.keys():
+                        txt = self.RespErrCode[ErrCode]
+                    else:
+                        txt = "Response Err"
+                
+                    raise ProtocolException(f'{txt}')
+                
             else:
                 in_data = []
 
