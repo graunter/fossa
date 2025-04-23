@@ -1,9 +1,11 @@
 
+import time
 import serial   #pip install pyserial
 import milur_const as mconst
 from  emeters.milur_meter_const import *
 from collections import namedtuple
 import threading
+from datetime import datetime
 
 
 def calc_crc_16_ibm(msg) -> int:
@@ -50,7 +52,7 @@ class PwrMeter:
     # TODO: this check is not protected by semaphore
     @staticmethod
     def check_resp_on_adr(adr: int, port: serial.Serial, sem: threading.Semaphore = None) -> bool:
-        send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_LVL_USER], list(mconst.ACCESS_PWD_USER)], [])
+        send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_ADM_USER], list(mconst.ACCESS_PWD_USER)], [])
         send_packet = create_packet_from_dat(send_dat)
 
         #TODO: fast stub
@@ -127,9 +129,16 @@ class PwrMeter:
         send_packet = create_packet_from_dat(pdu)  
 
         with self.sem:
+            self.port.reset_input_buffer()
             self.port.write(send_packet)
+            self.port.flush()
             #TODO: read len should be calculated
             # adr id_cmd _id_obj len crc1 crc2
+
+            long_time_commands = { mconst.SETRTC_ID_CMD:0.1 }
+            if (tx_cmd_id := pdu[1]) in long_time_commands.keys():
+                time.sleep(long_time_commands[tx_cmd_id])
+
             resp = self.port.read(6)
 
             if no_resp_fl and not resp:
@@ -138,55 +147,120 @@ class PwrMeter:
             if resp == b'':
                 raise ProtocolException("No response from device")
 
+            if resp[0] != pdu[0]:
+                raise ProtocolException('Wrong reply adress') 
+
+            
+            
             if len(resp) < 3:
                 raise ProtocolException("Too short response")
             
-            if (RespCode:=resp[1]) == (0x80 + pdu[1]):
-                if (ErrCode:=resp[2]) in self.RespErrCode.keys():
-                    txt = self.RespErrCode[ErrCode]
-                else:
-                    txt = "Response Err"
+            resp_with_len = [
+                mconst.GET_ID_CMD
+                , mconst.LISTINIT_ID_CMD
+                , mconst.GETLISTNE_ID_CMD
+                , mconst.GETCURINDEX_ID_CMD
+                , mconst.getPWIRecord_ID_CMD
+                , mconst.GET_ENTALIST_ID_CMD]
+
+            if tx_cmd_id in resp_with_len:
+                if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
+                    if (ErrCode:=resp[2]) in self.RespErrCode.keys():
+                        txt = self.RespErrCode[ErrCode]
+                    else:
+                        txt = "Response Err"
+                    
+                    raise ProtocolException(f'{txt}')
                 
-                raise ProtocolException(f'{txt}')
-            
-            if resp[1] != pdu[1]:
-                raise ProtocolException('Wrong reply code')     
-
-            next_read_size = resp[3]
-            if(send_packet[1] == mconst.GET_COLLECTION_ID_CMD):
-                next_read_size +=1
-
-            resp_next = self.port.read(next_read_size)   
-
-            #TODO: set timeout to 3.5 chars and read no sumbols
-            # resp_extra = self.port.read(3)
-            # if resp_extra:
-            #     raise ProtocolException(f'Extra data on line: {str(resp_extra)}')
-
-
-        if len(resp_next) != next_read_size:
-            raise ProtocolException('Respons is not complete')  
-
-        resp = resp + resp_next
-
-        crc = calc_crc_16_ibm(resp[0:-2])
-        ba = crc.to_bytes(2, byteorder='little')
+                if resp_code != tx_cmd_id:
+                    raise ProtocolException('Wrong reply code')  
  
-        data_start_pos = 4
+                next_read_size = resp[3]
 
-        if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
-            if resp[1] == mconst.GET_COLLECTION_ID_CMD:
-                #TODO: the overall packet seem good
-                # in_data = resp[data_start_pos:len(resp)-1]
-                pass
+                resp_next = self.port.read(next_read_size)   
+
+                if len(resp_next) != next_read_size:
+                    raise ProtocolException('Respons is not complete')  
+                
+                #TODO: set timeout to 3.5 chars and read no sumbols
+                # resp_extra = self.port.read(3)
+                # if resp_extra:
+                #     raise ProtocolException(f'Extra data on line: {str(resp_extra)}')
+
+                resp = resp + resp_next
+
+                crc = calc_crc_16_ibm(resp[0:-2])
+                ba = crc.to_bytes(2, byteorder='little')
+        
+                data_start_pos = 4
+
+                if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
+                    if resp[1] == mconst.GET_COLLECTION_ID_CMD:
+                        raise ProtocolException("Crc mismatch")
+                else:
+                    in_data = resp[data_start_pos:len(resp)-2]
+
+            elif tx_cmd_id == mconst.GET_COLLECTION_ID_CMD:
+                if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
+                    if (ErrCode:=resp[2]) in self.RespErrCode.keys():
+                        txt = self.RespErrCode[ErrCode]
+                    else:
+                        txt = "Response Err"
+                    
+                    raise ProtocolException(f'{txt}')
+ 
+                if resp_code != tx_cmd_id:
+                    raise ProtocolException('Wrong reply code')  
+                
+                next_read_size = resp[3] + 1
+                resp_next = self.port.read(next_read_size)   
+
+                #TODO: set timeout to 3.5 chars and read no sumbols
+                # resp_extra = self.port.read(3)
+                # if resp_extra:
+                #     raise ProtocolException(f'Extra data on line: {str(resp_extra)}')  
+                
+                resp = resp + resp_next
+
+                crc = calc_crc_16_ibm(resp[0:-2])
+                ba = crc.to_bytes(2, byteorder='little')
+        
+                data_start_pos = 4
+
+                if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
+                    #TODO: the overall packet seem good
+                    # in_data = resp[data_start_pos:len(resp)-1]
+                    pass
+                else:
+                    in_data = resp[data_start_pos:len(resp)-2]
+
+                              
+            elif pdu[1] == mconst.SETRTC_ID_CMD:
+                next_read_size = 0
+                in_data = []
             else:
-                raise ProtocolException("Crc mismatch")
-        else:
-            in_data = resp[data_start_pos:len(resp)-2]
+                in_data = []
 
 
         return in_data
     
+    def wr_rtc(self, dt: datetime):
+        cmd = mconst.SETRTC_ID_CMD
+        obj_id = 14
+        Seconds = dt.second
+        Minutes = dt.minute
+        Hours = dt.hour
+        DayInWeek = dt.weekday()+2
+        if DayInWeek>7:
+            DayInWeek = DayInWeek - 7
+        Day = dt.day
+        Month = dt.month
+        Year = dt.year-2000
+
+        send_dat = [self.adr, cmd, obj_id, Seconds, Minutes, Hours, DayInWeek, Day, Month, Year]  
+        in_dat = self.run_request(send_dat)
+
+
     def rd_split(self) -> list:
 
         cmd = mconst.GET_COLLECTION_ID_CMD
@@ -331,7 +405,7 @@ class PwrMeter:
         scale = 1
         pwr_lst = []
         for i in range(8*4 + 4):
-            real = self.decode_PacDec_to_str(rest[0:4])
+            real = self.decode_PacDec_to_str(rest[0:4], 2)
             pwr_lst.append(real)
             rest = rest[4:]
 
@@ -380,9 +454,9 @@ class PwrMeter:
             pwr_lst.append(real)
             rest = rest[4:]
 
-        hour_record = [date_txt] + pwr_lst
+        mounth_record = [date_txt] + pwr_lst
         
-        return hour_record
+        return mounth_record
             
 
     def rd_pwi_record(self, idx: int):

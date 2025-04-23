@@ -22,10 +22,10 @@ class RecordsFrame(ttk.TTkFrame):
         super().__init__(name="name", **kwargs)
 
         self.head_ENTARecord_tbl = ['Time', 
-            'Sum in A PWR','Sum in A PWR 1','Sum in A PWR 2','Sum in A PWR 3','Sum in A PWR 4','Sum in A PWR 5','Sum in A PWR 6','Sum in A PWR 7','Sum in A PWR 8',
-            'Sum out A PWR', 'Sum out A PWR 1','Sum out A PWR 2','Sum out A PWR 3','Sum out A PWR 4','Sum out A PWR 5','Sum out A PWR 6','Sum out A PWR 7','Sum out A PWR 8',
-            'Sum in R PWR','Sum in R PWR 1','Sum in R PWR 2','Sum in R PWR 3','Sum in R PWR 4','Sum in R PWR 5','Sum in R PWR 6','Sum in R PWR 7','Sum in R PWR 8',
-            'Sum out R PWR', 'Sum out R PWR 1','Sum out R PWR 2','Sum out R PWR 3','Sum out R PWR 4','Sum out R PWR 5','Sum out R PWR 6','Sum out R PWR 7','Sum out R PWR 8',            
+            'Sum in Active PWR','Sum in A PWR 1','Sum in A PWR 2','Sum in A PWR 3','Sum in A PWR 4','Sum in A PWR 5','Sum in A PWR 6','Sum in A PWR 7','Sum in A PWR 8',
+            'Sum out Active PWR', 'Sum out A PWR 1','Sum out A PWR 2','Sum out A PWR 3','Sum out A PWR 4','Sum out A PWR 5','Sum out A PWR 6','Sum out A PWR 7','Sum out A PWR 8',
+            'Sum in Re PWR','Sum in R PWR 1','Sum in R PWR 2','Sum in R PWR 3','Sum in R PWR 4','Sum in R PWR 5','Sum in R PWR 6','Sum in R PWR 7','Sum in R PWR 8',
+            'Sum out Re PWR', 'Sum out R PWR 1','Sum out R PWR 2','Sum out R PWR 3','Sum out R PWR 4','Sum out R PWR 5','Sum out R PWR 6','Sum out R PWR 7','Sum out R PWR 8',            
         ] 
 
         #--->

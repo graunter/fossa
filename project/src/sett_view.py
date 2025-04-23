@@ -1,4 +1,6 @@
 import argparse
+import datetime
+from datetime import datetime
 import random
 from threading import Thread
 import time
@@ -11,6 +13,7 @@ from emeters.milur_const import *
 import data_req as req
 import emeters.milur_meter as mtr
 from emeters.milur_meter_const import ReqId
+from datetime import datetime
 
 
 
@@ -24,6 +27,28 @@ class SettingsFrame(ttk.TTkFrame):
 
         super().__init__(name="name", **kwargs)
 
+        #---> Time
+        self.rtc_dev = ttk.TTkLabel(text = 'NA')
+        self.comp_time = ttk.TTkLabel(text = datetime.now().strftime('%S:%M:%H:%a:%d:%m:%Y') )
+        self.set_time_btn = ttk.TTkButton(text="Set current time")
+        self.set_time_btn.clicked.connect(self.on_set_current_btn)
+
+        self.time_frame =  ttk.TTkFrame(visible=False)
+        self.time_frame.setLayout(ttk.TTkGridLayout())
+
+        self.time_frame.layout().addWidget(ttk.TTkLabel(text="Device time", maxWidth = 25, maxHeight=3), 0,0)          
+        self.time_frame.layout().addWidget(self.rtc_dev, 0,1)
+        self.time_frame.layout().addWidget(ttk.TTkLabel(text="Local time", maxWidth = 25, maxHeight=3), 1,0)         
+        self.time_frame.layout().addWidget(self.comp_time, 1,1)    
+        self.time_frame.layout().addWidget(self.set_time_btn, 3,0)            
+        self.time_frame.layout().addWidget(ttk.TTkSpacer(), 5,0)
+
+        self.pause_visit_fl = True
+
+        self.pull_visit_thrd = Thread(target=self.on_pull)
+        self.pull_visit_thrd.daemon = True
+        self.pull_visit_thrd.start()
+        #---< Time
 
         #---> tax table
         self.head_tax_tbl = ['Time', 'Workday', 'Holiday', 'Saturday', 'Sunday'] 
@@ -76,12 +101,34 @@ class SettingsFrame(ttk.TTkFrame):
         #---< holidays
 
         tbl_tab = ttk.TTkTabWidget(border=False, visible=True)
+        tbl_tab.addTab(self.time_frame, " Device time ")        
         tbl_tab.addTab(self.tax_frame, " tax table ")
         tbl_tab.addTab(self.hol_frame, " holidays ")
 
 
         self.setLayout(ttk.TTkVBoxLayout())
         self.layout().addWidget(tbl_tab)        
+
+
+    def on_pull(self):
+
+        while True:   
+            if not self.pause_visit_fl:
+                try:
+                    # for item in g_view_items:
+                    #     item.upd_from_dev()
+                    if self.time_frame.isVisible() and self.isVisible():
+                        if self.device:
+                            self.rtc_dev.setText(self.device.rd_str(ReqId.rtc))
+
+                        self.comp_time.setText(datetime.now().strftime('%S:%M:%H:%a:%d:%m:%Y'))
+
+                except serial.SerialException as e:
+                    #todo
+                    pass
+
+            time.sleep(0.2)   
+
 
     def on_read_hol_btn(self):
         
@@ -96,6 +143,25 @@ class SettingsFrame(ttk.TTkFrame):
         self.hol_table.setModel(tableModel)
         self.hol_table.resizeRowsToContents()
         self.hol_table.resizeColumnsToContents()
+
+    def on_set_current_btn(self):
+
+        try:
+
+
+            self.pause_visit_fl = True
+            time.sleep(1)
+            dt = datetime.now()     
+            # just for testing
+            # dt = dt.replace(second = 1, minute = 2, hour = 3)       
+            self.device.wr_rtc(dt)
+            self.pause_visit_fl = False            
+        except Exception as e:
+            # TODO: unexpected error sometime happened
+            # err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            # ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            self.pause_visit_fl = False  
+            pass
 
     def on_read_tax_btn(self):
        
@@ -117,6 +183,7 @@ class SettingsFrame(ttk.TTkFrame):
 
     def set_device(self, dev: mtr.PwrMeter):
         self.device = dev
+        self.pause_visit_fl = False 
 
     def on_upd(self):
         self.on_read_tax_btn()
