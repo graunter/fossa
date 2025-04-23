@@ -155,9 +155,14 @@ class RecordsFrame(ttk.TTkFrame):
             return        
 
     def on_read_d_cnt_btn(self):
-        cur_idx = self.device.rd_d_tax_current()
-        total_cnt = self.device.rd_d_tax_total()
-    
+        try:
+            cur_idx = self.device.rd_d_tax_current()
+            total_cnt = self.device.rd_d_tax_total()
+        except Exception as e:
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            return
+            
         wrn_box = ttk.TTkMessageBox(
             title="Info",
             text=f'total = {str(total_cnt)}, current is {str(cur_idx)}'
@@ -166,9 +171,13 @@ class RecordsFrame(ttk.TTkFrame):
 
     def on_read_m_cnt_btn(self):
 
-        cur_idx = self.device.rd_m_tax_current()
-        total_cnt = self.device.rd_m_tax_total()
-
+        try:
+            cur_idx = self.device.rd_m_tax_current()
+            total_cnt = self.device.rd_m_tax_total()
+        except Exception as e:
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            return
 
         wrn_box = ttk.TTkMessageBox(
             title="Info",
@@ -254,9 +263,13 @@ class RecordsFrame(ttk.TTkFrame):
             )
             ttk.TTkHelper.overlay(None, wrn_box, 50, 20, True)
             return 
-        
-        total_cnt = self.device.rd_total_tax_count()
-        cur_idx = self.device.rd_total_tax_current()
+        try:
+            total_cnt = self.device.rd_total_tax_count()
+            cur_idx = self.device.rd_total_tax_current()
+        except Exception as e:
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            return
 
         wrn_box = ttk.TTkMessageBox(
             title="Info",
