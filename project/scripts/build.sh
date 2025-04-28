@@ -26,10 +26,9 @@ fi
 
 OUTPUT_PATH="../../build/$ARCHITECTURE"
 echo "OUTPUT_PATH=$OUTPUT_PATH"
-mkdir -p $OUTPUT_PATH
 #rm -rf $OUTPUT_PATH/{*,.*}
 rm -rf $OUTPUT_PATH/*
-
+mkdir -p $OUTPUT_PATH
 
 PROJECT_NAME=$(cat package/DEBIAN/control | grep 'Package:' | awk '{print$2}')
 version=$(cat package/DEBIAN/control | grep 'Version:' | awk '{print$2}')
@@ -38,6 +37,11 @@ echo "Copy Debian package to build folder.."
 cp -r package $OUTPUT_PATH
 
 PACKAGE_PATH="$OUTPUT_PATH/package"
+
+control=$(sed "s/VERSION/$BUILD_VERSION/" "$PACKAGE_PATH/DEBIAN/control")
+echo "$control" > "$PACKAGE_PATH/DEBIAN/control"
+control=$(sed "s/ARCHITECTURE/$BUILD_ARCHITECTURE/"  "$PACKAGE_PATH/DEBIAN/control")
+echo "$control" > "$PACKAGE_PATH/DEBIAN/control"
 
 BUILD_PATH="~/build-dir-$PROJECT_NAME"
 DIST_PATH="~/build-dir-$PROJECT_NAME/dist"
@@ -69,11 +73,16 @@ sshpass -p $BUILD_PLATFORM_PASS scp -P $BUILD_PLATFORM_PORT $BUILD_USER@$BUILD_P
 # cmd="rm -rf $BUILD_PATH"
 # ssh $BUILD_USER@$BUILD_PLATFORM_ADDRESS -p $BUILD_PLATFORM_PORT "$cmd" 
 
-cp ../../project/src/config.yaml $PACKAGE_PATH/etc/$PROJECT_NAME/
+#cp ../../project/src/config.yaml $PACKAGE_PATH/etc/$PROJECT_NAME/
 
 # For test on the local machine
-mkdir -p ~/$PROJECT_NAME/
-cp ../../project/src/config.yaml ~/$PROJECT_NAME/
+#mkdir -p ~/$PROJECT_NAME/
+#cp ../../project/src/config.yaml ~/$PROJECT_NAME/
+
+chmod +x "$PACKAGE_PATH/DEBIAN/preinst"
+chmod +x "$PACKAGE_PATH/DEBIAN/postinst"
+chmod +x "$PACKAGE_PATH/DEBIAN/prerm"
+chmod +x "$PACKAGE_PATH/DEBIAN/postrm"
 
 OUT_FULL_FILE_NAME="${OUTPUT_PATH}/${EXE_NAME}_${version}_${ARCHITECTURE}.deb"
 
