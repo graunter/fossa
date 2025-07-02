@@ -14,7 +14,8 @@ def modbusCrc(msg:str) -> int:
                 crc >>= 1
     return crc
 
-dev_port = '/dev/ttyUSB0'
+#dev_port = '/dev/ttyUSB0'
+dev_port = '/dev/ttyACM0'
 #dev_port = 'COM15'
 
 ser = serial.Serial(port=dev_port, baudrate=9600, bytesize=8, parity='N', 

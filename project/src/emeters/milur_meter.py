@@ -30,7 +30,10 @@ def create_packet_from_dat(send_dat: list) -> list:
 
 
 class ProtocolException(Exception):
-    pass
+    def __init__(self, msg, tx=[], rx=[]):
+        super().__init__(msg)
+        self.tx = tx
+        self.rx = rx
         
 class PwrMeter:
 
@@ -97,9 +100,6 @@ class PwrMeter:
                 pass
             
 
-
-
-
     def logout(self) -> bool:
         send_dat = [self.adr] + [mconst.ARELEASE_ID_CMD]
 
@@ -124,6 +124,16 @@ class PwrMeter:
         , 13: "PASSW_INCORRECT"
         , 14: "ACCESS_BLOCKED"
     }
+
+    MIN_RESP_LEN = 3
+
+    def raise_with_dbg_data(self, msg, tx, rx):
+        raise ProtocolException(
+            f'{msg}'
+            , f'TX: [{str(tx)}], '
+            , f'RX: [{str(rx)}]' 
+        )         
+
         
     def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
@@ -139,6 +149,8 @@ class PwrMeter:
             if (tx_cmd_id := pdu[1]) in long_time_commands.keys():
                 time.sleep(long_time_commands[tx_cmd_id])
 
+            # TODO: Should we read with no_response flag? 
+            # check this part of SM 
             resp = self.port.read(6)
 
             if no_resp_fl and not resp:
@@ -147,13 +159,11 @@ class PwrMeter:
             if resp == b'':
                 raise ProtocolException("No response from device")
 
-            if resp[0] != pdu[0]:
-                raise ProtocolException('Wrong reply adress') 
+            if (rx_adp:=resp[0]) != (tx_adr:=pdu[0]):
+                self.raise_with_dbg_data('Wrong reply address', send_packet, resp) 
 
-            
-            
-            if len(resp) < 3:
-                raise ProtocolException("Too short response")
+            if len(resp) < self.MIN_RESP_LEN:
+                self.raise_with_dbg_data('Too short response', send_packet, resp) 
             
             in_data = []
             
@@ -167,24 +177,23 @@ class PwrMeter:
 
             if tx_cmd_id in resp_with_len:
                 if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
-                    if (ErrCode:=resp[2]) in self.RespErrCode.keys():
-                        txt = self.RespErrCode[ErrCode]
+                    if (err_code:=resp[2]) in self.RespErrCode.keys():
+                        txt = self.RespErrCode[err_code]
                     else:
-                        txt = "Response Err"
+                        txt = ""
                     
-                    raise ProtocolException(f'{txt}')
+                    self.raise_with_dbg_data(f'Response Err {txt}', send_packet, resp)                          
                 
                 if resp_code != tx_cmd_id:
-                    raise ProtocolException('Wrong reply code')  
+                    self.raise_with_dbg_data('Wrong reply code', send_packet, resp)   
  
-                next_read_size = resp[3]
 
-                resp_next = self.port.read(next_read_size)   
+                resp_next = self.port.read(next_read_size := resp[3])   
 
                 if len(resp_next) != next_read_size:
-                    raise ProtocolException('Respons is not complete')  
+                    self.raise_with_dbg_data('Respons is not complete', send_packet, resp+resp_next)
                 
-                #TODO: set timeout to 3.5 chars and read no sumbols
+                #TODO: set timeout to 3.5 chars and read no symbols
                 # resp_extra = self.port.read(3)
                 # if resp_extra:
                 #     raise ProtocolException(f'Extra data on line: {str(resp_extra)}')
@@ -197,23 +206,25 @@ class PwrMeter:
                 data_start_pos = 4
 
                 if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
-                    if resp[1] == mconst.GET_COLLECTION_ID_CMD:
-                        raise ProtocolException("Crc mismatch")
+                    # TODO: may be not eq?
+                    # if resp_code == mconst.GET_COLLECTION_ID_CMD:
+                    self.raise_with_dbg_data('Crc mismatch', send_packet, resp+resp)
                 else:
                     in_data = resp[data_start_pos:len(resp)-2]
 
             elif tx_cmd_id == mconst.GET_COLLECTION_ID_CMD:
                 if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
-                    if (ErrCode:=resp[2]) in self.RespErrCode.keys():
-                        txt = self.RespErrCode[ErrCode]
+                    if (err_code:=resp[2]) in self.RespErrCode.keys():
+                        txt = self.RespErrCode[err_code]
                     else:
                         txt = "Response Err"
                     
-                    raise ProtocolException(f'{txt}')
+                    self.raise_with_dbg_data(f'Response Err in GET_COLLECTION_ID_CMD #{txt}', send_packet, resp)      
  
                 if resp_code != tx_cmd_id:
-                    raise ProtocolException('Wrong reply code')  
+                    self.raise_with_dbg_data('Wrong reply code', send_packet, resp)  
                 
+                # WARNING - this diff with common processing is important!
                 next_read_size = resp[3] + 1
                 resp_next = self.port.read(next_read_size)   
 
@@ -237,21 +248,23 @@ class PwrMeter:
                     in_data = resp[data_start_pos:len(resp)-2]
 
                               
-            elif pdu[1] == mconst.SETRTC_ID_CMD:
+            elif tx_cmd_id == mconst.SETRTC_ID_CMD:
                 if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
-                    if (ErrCode:=resp[2]) in self.RespErrCode.keys():
-                        txt = self.RespErrCode[ErrCode]
+                    if (err_code:=resp[2]) in self.RespErrCode.keys():
+                        txt = self.RespErrCode[err_code]
                     else:
-                        txt = "Response Err"
-                
-                    raise ProtocolException(f'{txt}')
+                        txt = ""
+                    
+                    self.raise_with_dbg_data(f'Response Err in SETRTC_ID_CMD #{txt}', send_packet, resp)  
                 
             else:
+                # TODO: the command processed by anyway but todo with this response?
+                # self.raise_with_dbg_data(f'The response for {tx_cmd_id} command is not supported', send_packet, resp) 
                 in_data = []
 
-
         return in_data
-    
+
+
     def wr_rtc(self, dt: datetime):
         cmd = mconst.SETRTC_ID_CMD
         obj_id = 14
@@ -354,7 +367,11 @@ class PwrMeter:
         dlen = 4
         records = []
         dat = in_dat
-        for cnt in range(12):
+        for cnt in range(8): #12 records total
+            value, _ = self.decode_word_to_str(dat[cnt*dlen:(cnt+1)*dlen], 1000)
+            records.append( value )
+
+        for cnt in range(8, 12): 
             records.append( self.decode_PacDec_to_str(dat[cnt*dlen:(cnt+1)*dlen], 3) )
 
         pA, pB, pC, pSum, qA, qB, qC, qSum, tA, tB, tC, tSum = [str(item) for item in records]
@@ -638,8 +655,8 @@ class PwrMeter:
 
     def decode_word_to_str(self, in_dat: bytes, scale = 1) -> {str, bytes}:
         dat = in_dat[0:4]
-        digit = int.from_bytes(in_dat, byteorder='little', signed=False)
-        txt = str(digit)    
+        digit = int.from_bytes(in_dat, byteorder='little', signed=True)
+        txt = str(digit/scale)    
         return txt, in_dat[4:]
 
     def decode_str_to_str(self, in_dat: bytes) -> str:
