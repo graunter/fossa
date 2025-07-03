@@ -140,7 +140,7 @@ class RealFrame(ttk.TTkFrame):
         self.layout().addWidget(tbl_tab)
 
 
-    def set_device(self, dev: mtr.PwrMeter):
+    def set_device(self, dev: mtr.MilurMeter):
         self.device = dev
 
         for item in self.g_view_items:

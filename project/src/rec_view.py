@@ -278,7 +278,7 @@ class RecordsFrame(ttk.TTkFrame):
         ttk.TTkHelper.overlay(None, wrn_box, 50, 20, True)
         
 
-    def set_device(self, dev: mtr.PwrMeter):
+    def set_device(self, dev: mtr.MilurMeter):
         self.device = dev
 
     def on_upd(self):

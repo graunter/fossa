@@ -49,7 +49,7 @@ class HardInfoFrame(ttk.TTkFrame):
         self.layout().addWidget(ttk.TTkSpacer())
 
 
-    def set_device(self, dev: mtr.PwrMeter):
+    def set_device(self, dev: mtr.MilurMeter):
         self.device = dev
 
         for i in self.items:

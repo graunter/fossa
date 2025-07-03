@@ -181,7 +181,7 @@ class SettingsFrame(ttk.TTkFrame):
 
         self.month_label.setText(f'{ self.mlst.currentText()}')
 
-    def set_device(self, dev: mtr.PwrMeter):
+    def set_device(self, dev: mtr.MilurMeter):
         self.device = dev
         self.pause_visit_fl = False 
 

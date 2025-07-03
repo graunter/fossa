@@ -7,7 +7,7 @@ import logging
 import json
 from threading import Thread, Semaphore
 from timeit import default_timer as timer
-from emeters.milur_meter import PwrMeter
+from emeters.milur_meter import MilurMeter
 import emeters.milur_meter_const as mmc
 from emeters.milur_const import PWD_LEN, ACCESS_PWD_USER, ACCESS_LVL_USER
 import serial   #pip install pyserial
@@ -66,7 +66,7 @@ class Fossa:
         self.pwr_mtr_lst = []
         for adr in self.cfg.adr_lst:
             try:
-                cnt = PwrMeter(adr, self.ser, self.sem)  
+                cnt = MilurMeter(adr, self.ser, self.sem)  
                 logging.info(f'Connected to adr {adr}')
                 cnt.login(ACCESS_LVL_USER, ACCESS_PWD_USER)
                 self.pwr_mtr_lst.append(cnt)

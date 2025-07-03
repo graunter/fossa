@@ -35,21 +35,36 @@ class ProtocolException(Exception):
         self.tx = tx
         self.rx = rx
         
-class PwrMeter:
+class DummyPortHandler():
 
-    def __init__(self, adr: int, port: serial.Serial, sem: threading.Semaphore):
+    def __init__(self, port: serial.Serial):
+        self.port = port
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        #Exception handling here
+        pass
+
+    def write(self, data): return self.port.write(data)
+    def read(self, data): return self.port.read(data)    
+    def reset_input_buffer(self): return self.port.reset_input_buffer() 
+    def flush(self): return self.port.flush() 
+
+
+class MilurMeter:
+
+    def __init__(self, adr: int):
         self.adr = adr
-        self.port = port
         self.err_cnt = 0
-        self.sem = sem
 
 
-    def link(self, port: serial.Serial, sem: threading.Semaphore):
-        self.port = port
-        self.sem = sem
+    def link(self, *args):
+        self.ph = DummyPortHandler(*args)
 
     def disconnect(self):
-        self.port = None    
+        self.ph = None     
 
 
     # TODO: this check is not protected by semaphore
@@ -89,11 +104,11 @@ class PwrMeter:
         # may be standard error processing over exeption will be enought
         send_packet = create_packet_from_dat(send_dat) 
 
-        with self.sem:
-            self.port.write(send_packet)
+        with self.ph as ph:
+            ph.write(send_packet)
             #TODO: read len should be calculated
             # adr id_cmd crc1 crc2
-            resp = self.port.read(10)
+            resp = ph.read(10)
             
             if len(resp) != 4:
             #     raise ProtocolException("Too short response for login")
@@ -138,10 +153,10 @@ class PwrMeter:
     def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
 
-        with self.sem:
-            self.port.reset_input_buffer()
-            self.port.write(send_packet)
-            self.port.flush()
+        with self.ph as ph:
+            ph.reset_input_buffer()
+            ph.write(send_packet)
+            ph.flush()
             #TODO: read len should be calculated
             # adr id_cmd _id_obj len crc1 crc2
 
@@ -151,7 +166,7 @@ class PwrMeter:
 
             # TODO: Should we read with no_response flag? 
             # check this part of SM 
-            resp = self.port.read(6)
+            resp = ph.read(6)
 
             if no_resp_fl and not resp:
                 return
@@ -187,8 +202,7 @@ class PwrMeter:
                 if resp_code != tx_cmd_id:
                     self.raise_with_dbg_data('Wrong reply code', send_packet, resp)   
  
-
-                resp_next = self.port.read(next_read_size := resp[3])   
+                resp_next = ph.read(next_read_size := resp[3])   
 
                 if len(resp_next) != next_read_size:
                     self.raise_with_dbg_data('Respons is not complete', send_packet, resp+resp_next)
@@ -226,7 +240,7 @@ class PwrMeter:
                 
                 # WARNING - this diff with common processing is important!
                 next_read_size = resp[3] + 1
-                resp_next = self.port.read(next_read_size)   
+                resp_next = ph.read(next_read_size)   
 
                 #TODO: set timeout to 3.5 chars and read no sumbols
                 # resp_extra = self.port.read(3)

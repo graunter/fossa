@@ -146,10 +146,13 @@ def on_mb_open_btn():
     
     mb_adr = int(g_mb_adr_ledit.text().toAscii())
         
-    if mtr.PwrMeter.check_resp_on_adr(mb_adr, g_ser) == True:
+    if mtr.MilurMeter.check_resp_on_adr(mb_adr, g_ser) == True:
         bg_color = ttk.TTkColor.BG_GREEN
 
-        g_cnt_lst.append(mtr.PwrMeter(mb_adr, g_ser, g_sema))
+        adapter = mtr.MilurMeter(mb_adr)#, g_ser, g_sema))
+        #TODO: semaphore must be set here
+        adapter.link(g_ser)#, g_sema)
+        g_cnt_lst.append(adapter)
 
         g_info_frame.set_device(g_cnt_lst[0])
         g_info_frame.on_upd()

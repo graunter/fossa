@@ -46,7 +46,7 @@ class DataRequest(ttk.TTkFrame):
         self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt, size=(def_unit_size,1), maxWidth = def_unit_w), line_cnt, units_column)    
         self.layout().addWidget(ttk.TTkSpacer())
 
-    def set_device(self, dev: mtr.PwrMeter):
+    def set_device(self, dev: mtr.MilurMeter):
         self.device = dev
 
     def upd_from_dev(self):
