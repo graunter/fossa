@@ -2,12 +2,8 @@ import TermTk as ttk
 import emeters.milur_meter as mtr
 
 class DataRequest(ttk.TTkFrame):
-     
-    def __init__(self, *
-            , label: ttk.TTkString = "Param name"
-            , data: ttk.TTkString = "NA"
-            , unit: ttk.TTkString = ""
-            , req = None
+    
+    def __init__(self
             , **kwargs) -> None:
         
         super().__init__(
@@ -17,37 +13,100 @@ class DataRequest(ttk.TTkFrame):
             # , minWidth = 60
             ,  **kwargs)
 
-        self.label_txt = label
-        self.data_txt = data
-        self.unit_txt = unit
         self.device = None
-        self.req = req
         
-        start_column = 0
-        name_column = start_column
-        data_column = name_column +1
-        units_column = data_column +1
+        self.start_column = 0
+        self.name_column = self.start_column
+        self.data_column = self.name_column +1
+        self.units_column = self.data_column +1
 
-        def_name_w = 25
-        def_data_w = 25
-        def_unit_w = 20
+        self.def_name_w = 25
+        self.def_data_w = 25
+        self.def_unit_w = 20
 
-        def_name_size = 25
-        def_data_size = 25
-        def_unit_size = 30
+        self.def_name_size = 25
+        self.def_data_size = 25
+        self.def_unit_size = 30
 
-        line_cnt = 0
-
-
-        self.layout().addWidget(ttk.TTkLabel(text=self.label_txt, size=(def_name_size,1), maxWidth = def_name_w), line_cnt, name_column)
-        self.data_item = ttk.TTkLineEdit(text=self.data_txt, size=(def_data_size,1), maxWidth = def_data_w)
-        self.data_item.setEnabled(False)
-        self.layout().addWidget(self.data_item, line_cnt, data_column)
-        self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt, size=(def_unit_size,1), maxWidth = def_unit_w), line_cnt, units_column)    
-        self.layout().addWidget(ttk.TTkSpacer())
 
     def set_device(self, dev: mtr.MilurMeter):
         self.device = dev
+
+    def upd_from_dev(self):
+        pass
+
+class DataSRequest(DataRequest):
+   
+    def __init__(self, *
+            , label: ttk.TTkString = "Param name"
+            , data: ttk.TTkString = "NA"
+            , unit: ttk.TTkString = ""
+            , req = None
+            , **kwargs) -> None:     
+        
+        super().__init__( **kwargs )
+ 
+        self.label_txt = label
+        self.data_txt = data
+        self.unit_txt = unit
+        self.req = req
+        
+        line_cnt = 0
+
+
+        self.layout().addWidget(ttk.TTkLabel(text=self.label_txt, size=(self.def_name_size,1), maxWidth = self.def_name_w), line_cnt, self.name_column)
+        self.data_item = ttk.TTkLineEdit(text=self.data_txt, size=(self.def_data_size,1), maxWidth = self.def_data_w)
+        self.data_item.setEnabled(False)
+        self.layout().addWidget(self.data_item, line_cnt, self.data_column)
+        self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt, size=(self.def_unit_size,1), maxWidth = self.def_unit_w), line_cnt, self.units_column)    
+        self.layout().addWidget(ttk.TTkSpacer())
+
+
+    def upd_from_dev(self):
+        if not self.device:
+            self.data_item.setText("no device")
+            return
+
+        if self.req:
+            try:
+                txt = self.req(self.device)
+            except Exception as e:
+                txt = f'{str(e)}'
+    
+            self.data_item.setText(txt)
+
+
+class DataQRequest(DataRequest):
+   
+    def __init__(self, *
+            , score: ttk.TTkString = ""
+            , label: list[ttk.TTkString] = ["1", "2", "3", "4"]
+            , data: list[ttk.TTkString] = ["NA"]
+            , unit: list[ttk.TTkString] = [""]
+            , req = None
+            , **kwargs) -> None:     
+        
+        super().__init__( **kwargs )
+ 
+        self.label_txt = label
+        self.data_txt = data
+        self.unit_txt = unit
+        self.req = req
+        
+        line_cnt = 0
+
+        self.setBorder(True)
+        self.setTitle(score)
+        self.setTitleAlign( ttk.TTkCore.TTkConstant.LEFT_ALIGN )
+
+
+        self.layout().addWidget(ttk.TTkLabel(text=self.label_txt[0], size=(self.def_name_size,1), maxWidth = self.def_name_w), line_cnt, self.name_column)
+        self.data_item = ttk.TTkLineEdit(text=self.data_txt[0], size=(self.def_data_size,1), maxWidth = self.def_data_w)
+        self.data_item.setEnabled(False)
+        self.layout().addWidget(self.data_item, line_cnt, self.data_column)
+        self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt[0], size=(self.def_unit_size,1), maxWidth = self.def_unit_w), line_cnt, self.units_column)    
+        self.layout().addWidget(ttk.TTkSpacer())
+
 
     def upd_from_dev(self):
         if not self.device:

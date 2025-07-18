@@ -34,12 +34,12 @@ class HardInfoFrame(ttk.TTkFrame):
 
         self.items = [
             
-            req.DataRequest(label="Model name", req=lambda dev: dev.rd_str(ReqId.model))
-            , req.DataRequest(label="Serial number", req=lambda dev: dev.rd_str(ReqId.serial_num))
-            , req.DataRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(ReqId.prod_date))
-            , req.DataRequest(label="FW version", req=lambda dev: dev.rd_str(ReqId.fw_ver))
-            , req.DataRequest(label="Current scale", req=lambda dev: dev.rd_str(ReqId.i_scale))
-            , req.DataRequest(label="Voltage scale", req=lambda dev: dev.rd_str(ReqId.v_scale))        
+            req.DataSRequest(label="Model name", req=lambda dev: dev.rd_str(ReqId.model))
+            , req.DataSRequest(label="Serial number", req=lambda dev: dev.rd_str(ReqId.serial_num))
+            , req.DataSRequest(label="Production date", unit="ss.mm.hh.dow.dd.mm.yyyy", req=lambda dev: dev.rd_str(ReqId.prod_date))
+            , req.DataSRequest(label="FW version", req=lambda dev: dev.rd_str(ReqId.fw_ver))
+            , req.DataSRequest(label="Current scale", req=lambda dev: dev.rd_str(ReqId.i_scale))
+            , req.DataSRequest(label="Voltage scale", req=lambda dev: dev.rd_str(ReqId.v_scale))        
         ]
 
         self.setLayout(ttk.TTkVBoxLayout())
