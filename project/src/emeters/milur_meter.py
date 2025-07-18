@@ -761,7 +761,8 @@ class MilurMeter:
         
         , ReqId.ReActPwr: Msg(DType.DigitData, mconst.RP_ID_DATA, 4, 1000)   
 
-        , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4, 2)                      
+        , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4, 2)  
+        , ReqId.ReAct_imp_e: Msg(DType.PacDecData, mconst.RIE_ID_DATA, 4, 2)                    
     }
 
 
