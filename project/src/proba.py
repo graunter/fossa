@@ -1,3 +1,4 @@
+import argparse
 import serial   #pip install pyserial
 import struct
 from binascii import hexlify
@@ -18,8 +19,6 @@ def modbusCrc(msg:str) -> int:
 dev_port = '/dev/ttyACM0'
 #dev_port = 'COM15'
 
-ser = serial.Serial(port=dev_port, baudrate=9600, bytesize=8, parity='N', 
-stopbits=1, timeout=0.1, rtscts=False, dsrdtr=False)
 
 adr = range(1, 254)
 prj_ver_code = 0x00
@@ -61,49 +60,70 @@ def decode_rtc(resp: list):
 #command_to_send = "AT+RET\r\n"
 #command_to_send = [adr, service_code, access_lvl, access_pwd, cmd_crc]
 
-for test_adr in adr:
-    send_dat = sum([[test_adr], [open_srv_code], [access_lvl_user], list(access_pwd_user)], [])
-    crc = modbusCrc(send_dat)
-    ba = crc.to_bytes(2, byteorder='little')
-    send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
-    ser.write(send_packet)
-    
-    received = ser.read(128)
-    if received != b'':
-        print(f'\n {test_adr}, {hex(test_adr)}: AOPEN \n')
-        print(f'>> {[hex(one) for one in send_packet]}')
-        print(f'<< {[hex(one) for one in received]}')
-
-        send_dat = sum([[test_adr], [0x01], [freq_code], list(cmd_crc)], [])
+def run_tester(ser):
+    for test_adr in adr:
+        send_dat = sum([[test_adr], [open_srv_code], [access_lvl_user], list(access_pwd_user)], [])
         crc = modbusCrc(send_dat)
         ba = crc.to_bytes(2, byteorder='little')
-        send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])        
+        send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])
         ser.write(send_packet)
-        resp = ser.read(128)
+        
+        received = ser.read(128)
+        if received != b'':
+            print(f'\n {test_adr}, {hex(test_adr)}: AOPEN \n')
+            print(f'>> {[hex(one) for one in send_packet]}')
+            print(f'<< {[hex(one) for one in received]}')
 
-        print(f'\n {test_adr}, {hex(test_adr)}: frequency')
-        print(f'>> {[hex(one) for one in send_packet]}')
-        print(f'<< {[hex(one) for one in resp]}')
-        freq = int.from_bytes(resp[4:6],byteorder='little', signed=False)
-        print(f'{freq/1000}')
-
-
-        # test for RTC
-        for _ in range(1):
-            send_dat = sum([[test_adr], [0x01], [rtc_code]], [])
+            send_dat = sum([[test_adr], [0x01], [freq_code], list(cmd_crc)], [])
             crc = modbusCrc(send_dat)
             ba = crc.to_bytes(2, byteorder='little')
             send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])        
             ser.write(send_packet)
             resp = ser.read(128)
 
-            print(f'\n {test_adr}, {hex(test_adr)}: RTC')
+            print(f'\n {test_adr}, {hex(test_adr)}: frequency')
             print(f'>> {[hex(one) for one in send_packet]}')
             print(f'<< {[hex(one) for one in resp]}')
-            print(f'dec: {list(resp)}')
-            txt = decode_rtc(resp)
-            print(f'{txt}')
+            freq = int.from_bytes(resp[4:6],byteorder='little', signed=False)
+            print(f'{freq/1000}')
 
 
-    else:
-        print(f'\r{test_adr}: none', end='')
+            # test for RTC
+            for _ in range(1):
+                send_dat = sum([[test_adr], [0x01], [rtc_code]], [])
+                crc = modbusCrc(send_dat)
+                ba = crc.to_bytes(2, byteorder='little')
+                send_packet = sum([send_dat, [ba[0]], [ba[1]]], [])        
+                ser.write(send_packet)
+                resp = ser.read(128)
+
+                print(f'\n {test_adr}, {hex(test_adr)}: RTC')
+                print(f'>> {[hex(one) for one in send_packet]}')
+                print(f'<< {[hex(one) for one in resp]}')
+                print(f'dec: {list(resp)}')
+                txt = decode_rtc(resp)
+                print(f'{txt}')
+
+
+        else:
+            print(f'\r{test_adr}: none', end='')
+
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Milur tester', 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    
+    parser.add_argument('-s', '--serial', dest='serial_port', action="store",
+                    help='Specify the Modbus port to connect to.')  
+          
+    args, unknown = parser.parse_known_args()
+
+    dev_port = args.serial_port
+
+    ser = serial.Serial(port=dev_port, baudrate=9600, bytesize=8, parity='N', 
+        stopbits=2, timeout=0.1, rtscts=False, dsrdtr=False)
+    
+    run_tester(ser)

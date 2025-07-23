@@ -414,19 +414,22 @@ def main():
                     help='Enable debug messages.')    
     parser.add_argument('-c', '--config', dest='cfg_file_name', action="store", default=False,
                     help='Single config file for this app instance.')    
-    args = parser.parse_args()
-    windowed = args.w
-    windowed = False
+    args = parser.parse_known_args()
+    # windowed = args.w
+    # windowed = False
 
     root = ttk.TTk(title="Fossa - MILUR HMI")
 
-    if windowed:
-        MainWnd = ttk.TTkWindow(parent=root,pos=(1,1), size=(120,40), title="Fossa - MILUR HMI", border=True, layout=ttk.TTkGridLayout())
-        border = True
-    else:
+    # if not args.w:
+    if False:
         root.setLayout(ttk.TTkGridLayout())
         MainWnd = root
-        border = False
+        border = False  
+    else:
+        MainWnd = ttk.TTkWindow(parent=root,pos=(1,1), size=(120,40), title="Fossa - MILUR HMI", border=True, layout=ttk.TTkGridLayout())
+        border = True
+
+
 
     build_main_screen(MainWnd)
     
