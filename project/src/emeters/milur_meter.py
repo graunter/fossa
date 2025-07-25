@@ -142,7 +142,7 @@ class MilurMeter:
 
     MIN_RESP_LEN = 3
 
-    def raise_with_dbg_data(self, msg, tx, rx):
+    def raise_with_dbg_data(self, msg, tx=None, rx=None):
         raise ProtocolException(
             f'{msg}'
             , f'TX: [{str(tx)}], '
@@ -172,7 +172,7 @@ class MilurMeter:
                 return
             
             if resp == b'':
-                raise ProtocolException("No response from device")
+                self.raise_with_dbg_data('No response from device', send_packet) 
 
             if (rx_adp:=resp[0]) != (tx_adr:=pdu[0]):
                 self.raise_with_dbg_data('Wrong reply address', send_packet, resp) 
