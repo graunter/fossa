@@ -92,6 +92,7 @@ class DataQRequest(DataRequest):
         self.data_txt = data
         self.unit_txt = unit
         self.req = req
+        self.data_item = []
         
         line_cnt = 0
 
@@ -99,13 +100,25 @@ class DataQRequest(DataRequest):
         self.setTitle(score)
         self.setTitleAlign( ttk.TTkCore.TTkConstant.LEFT_ALIGN )
 
+        for pos, lab in enumerate(label):
+            self.layout().addWidget(
+                ttk.TTkLabel(text=self.label_txt[pos], size=(self.def_name_size,1), maxWidth = self.def_name_w), line_cnt, self.name_column
+            )
 
-        self.layout().addWidget(ttk.TTkLabel(text=self.label_txt[0], size=(self.def_name_size,1), maxWidth = self.def_name_w), line_cnt, self.name_column)
-        self.data_item = ttk.TTkLineEdit(text=self.data_txt[0], size=(self.def_data_size,1), maxWidth = self.def_data_w)
-        self.data_item.setEnabled(False)
-        self.layout().addWidget(self.data_item, line_cnt, self.data_column)
-        self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt[0], size=(self.def_unit_size,1), maxWidth = self.def_unit_w), line_cnt, self.units_column)    
-        self.layout().addWidget(ttk.TTkSpacer())
+            txt = self.data_txt[pos] if pos < len(self.data_txt) else ""
+                
+            self.data_item.append( dat:= ttk.TTkLineEdit(text=txt, size=(self.def_data_size,1), maxWidth = self.def_data_w) )
+            dat.setEnabled(False)
+            self.layout().addWidget(dat, line_cnt, self.data_column)
+
+            txt = self.unit_txt[pos] if pos < len(self.unit_txt) else ""
+            self.layout().addWidget(
+                ttk.TTkLabel(text=txt, size=(self.def_unit_size,1), maxWidth = self.def_unit_w), line_cnt, self.units_column
+            )    
+
+            self.layout().addWidget(ttk.TTkSpacer())
+
+            line_cnt += 1
 
 
     def upd_from_dev(self):
@@ -119,4 +132,5 @@ class DataQRequest(DataRequest):
             except Exception as e:
                 txt = f'{str(e)}'
     
-            self.data_item.setText(txt)
+            if len(self.data_item) >0:
+                self.data_item[0].setText(txt)

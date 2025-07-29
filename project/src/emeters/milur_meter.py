@@ -612,6 +612,24 @@ class MilurMeter:
 
         return taxt_tbl
     
+    def rd_pf(self):
+        req_id = mconst.PF
+
+        in_dat_full = self.run_request([self.adr, mconst.GET_ID_CMD, req_id])
+
+        if len(in_dat_full) < 16:
+            self.raise_with_dbg_data('PF - too short response', "", in_dat_full) 
+
+        pf_tbl = []
+        line_size = 4
+        for idx_cnt in range(4):        
+            in_dat = in_dat_full[line_size*idx_cnt : line_size*(idx_cnt+1)]
+
+            pf_tbl.append(str(in_dat))
+
+        return pf_tbl
+
+
 
     
     def decode_rtc_to_liststr(self, in_dat: bytes):
@@ -742,27 +760,50 @@ class MilurMeter:
 
         , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
         , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
-        , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000)  
-
+ 
 
         , ReqId.UPhB: Msg(DType.DigitData, mconst.UB_ID_DATA, 3, 1000)
         , ReqId.IPhB: Msg(DType.DigitData, mconst.IB_ID_DATA, 3, 1000)
-        , ReqId.PwrB: Msg(DType.DigitData, mconst.PB_ID_DATA, 4, 1000)  
+ 
 
         , ReqId.UPhC: Msg(DType.DigitData, mconst.UC_ID_DATA, 3, 1000)
         , ReqId.IPhC: Msg(DType.DigitData, mconst.IC_ID_DATA, 3, 1000)
-        , ReqId.PwrC: Msg(DType.DigitData, mconst.PC_ID_DATA, 4, 1000)                        
+
+        , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000) 
+        , ReqId.PwrB: Msg(DType.DigitData, mconst.PB_ID_DATA, 4, 1000) 
+        , ReqId.PwrC: Msg(DType.DigitData, mconst.PC_ID_DATA, 4, 1000)     
+        , ReqId.Pwr: Msg(DType.DigitData, mconst.P_ID_DATA, 4, 1000)                            
 
         , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
         , ReqId.ActPwrB: Msg(DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
         , ReqId.ActPwrC: Msg(DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
+        , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)   
 
-        , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)      
-        
+        , ReqId.ReActPwrA: Msg(DType.DigitData, mconst.RPA_ID_DATA, 4, 1000)     
+        , ReqId.ReActPwrB: Msg(DType.DigitData, mconst.RPB_ID_DATA, 4, 1000)  
+        , ReqId.ReActPwrC: Msg(DType.DigitData, mconst.RPC_ID_DATA, 4, 1000)             
         , ReqId.ReActPwr: Msg(DType.DigitData, mconst.RP_ID_DATA, 4, 1000)   
 
         , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_1: Msg(DType.PacDecData, mconst.AIE_T1_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_2: Msg(DType.PacDecData, mconst.AIE_T2_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_3: Msg(DType.PacDecData, mconst.AIE_T3_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_4: Msg(DType.PacDecData, mconst.AIE_T4_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_5: Msg(DType.PacDecData, mconst.AIE_T5_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_6: Msg(DType.PacDecData, mconst.AIE_T6_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_7: Msg(DType.PacDecData, mconst.AIE_T7_ID_DATA, 4, 2)  
+        , ReqId.Active_imp_e_8: Msg(DType.PacDecData, mconst.AIE_T8_ID_DATA, 4, 2)        
+
+
         , ReqId.ReAct_imp_e: Msg(DType.PacDecData, mconst.RIE_ID_DATA, 4, 2)                    
+        , ReqId.ReAct_imp_e_1: Msg(DType.PacDecData, mconst.RIE_T1_ID_DATA, 4, 2)          
+        , ReqId.ReAct_imp_e_2: Msg(DType.PacDecData, mconst.RIE_T2_ID_DATA, 4, 2)  
+        , ReqId.ReAct_imp_e_3: Msg(DType.PacDecData, mconst.RIE_T3_ID_DATA, 4, 2)  
+        , ReqId.ReAct_imp_e_4: Msg(DType.PacDecData, mconst.RIE_T4_ID_DATA, 4, 2)   
+        , ReqId.ReAct_imp_e_5: Msg(DType.PacDecData, mconst.RIE_T5_ID_DATA, 4, 2)          
+        , ReqId.ReAct_imp_e_6: Msg(DType.PacDecData, mconst.RIE_T6_ID_DATA, 4, 2)  
+        , ReqId.ReAct_imp_e_7: Msg(DType.PacDecData, mconst.RIE_T7_ID_DATA, 4, 2)  
+        , ReqId.ReAct_imp_e_8: Msg(DType.PacDecData, mconst.RIE_T8_ID_DATA, 4, 2)                                 
     }
 
 

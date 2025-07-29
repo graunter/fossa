@@ -42,11 +42,41 @@ class RealFrame(ttk.TTkFrame):
 
             , req.DataSRequest(label="Calc day", unit="date", req=lambda dev: dev.rd_str(ReqId.calc_day))            
 
-            , req.DataSRequest(label="Active power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwr))
-            , req.DataSRequest(label="ReActive power summary", unit="W", req=lambda dev: dev.rd_str(ReqId.ReActPwr))            
-            , req.DataSRequest(label="Active in energy sum", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
+            , req.DataSRequest(label="Active power summary (Total P)", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwr))
+            , req.DataSRequest(label="Active power (P L1)", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrA))
+            # , req.DataSRequest(label="Active power (P L2)", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrB))
+            # , req.DataSRequest(label="Active power (P L3)", unit="W", req=lambda dev: dev.rd_str(ReqId.ActPwrC))            
 
-            , req.DataQRequest(score="Group", label=["Tst"], unit=["qqq"], req=None)
+            , req.DataSRequest(label="ReActive power summary (Q)", unit="var", req=lambda dev: dev.rd_str(ReqId.ReActPwr))  
+            , req.DataSRequest(label="ReActive power (Q L1)", unit="var", req=lambda dev: dev.rd_str(ReqId.ReActPwrA))
+            # , req.DataSRequest(label="ReActive power (Q L2)", unit="var", req=lambda dev: dev.rd_str(ReqId.ReActPwrB))
+            # , req.DataSRequest(label="ReActive power (Q L3)", unit="var", req=lambda dev: dev.rd_str(ReqId.ReActPwrC)) 
+
+            , req.DataSRequest(label="Full power summary (S)", unit="VA", req=lambda dev: dev.rd_str(ReqId.Pwr))  
+            , req.DataSRequest(label="Full power (S L1)", unit="VA", req=lambda dev: dev.rd_str(ReqId.PwrA))
+            # , req.DataSRequest(label="Full power (S L2)", unit="VA", req=lambda dev: dev.rd_str(ReqId.PwrB))
+            # , req.DataSRequest(label="Full power (S L3)", unit="VA", req=lambda dev: dev.rd_str(ReqId.PwrC)) 
+
+
+
+            , req.DataSRequest(label="Active in energy sum (AP)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
+            , req.DataSRequest(label="Active in energy (AP t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_1))  
+            # , req.DataSRequest(label="Active in energy (AP t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_2))  
+            # , req.DataSRequest(label="Active in energy (AP t3)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_3))  
+            # , req.DataSRequest(label="Active in energy (AP t4)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_4))                                      
+
+            , req.DataSRequest(label="ReActive in energy sum (AR)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e))  
+            , req.DataSRequest(label="ReActive in energy (AR t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_1))  
+            # , req.DataSRequest(label="ReActive in energy (AR t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_2))  
+            # , req.DataSRequest(label="ReActive in energy (AR t3)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_3))  
+            # , req.DataSRequest(label="ReActive in energy (AR t4)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_4))  
+
+            , req.DataQRequest(
+                score="Power Factor", 
+                label=["PF", 'PF L1', 'PF L2', 'PF L3'], 
+                unit=["none"], 
+                req=lambda dev: dev.rd_pf()
+            )
 
         ]
 

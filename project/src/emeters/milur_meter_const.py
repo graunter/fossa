@@ -112,3 +112,28 @@ class DType(Enum):
     RtcData = auto()
     VScaleData = auto()
     IScaleDate = auto()
+
+class EmData:
+    name = ""
+    label = ""
+    comment = ""
+
+class EmPwrPh(EmData):
+    name = "Power factor"
+    label = "PF"
+    comment = "Power factor on each phase"
+
+class EmPwrPhA(EmPwrPh):
+    def __init__(self):
+        self.name = super().name + " L1"
+        self.label = super().label + " L1"
+
+class EmPwrPhB(EmPwrPh):
+    def __init__(self):
+        name = super().name + " L2"
+        label = super().label + " L2"
+
+class EmPwrPhB(EmPwrPh):
+    def __init__(self):
+        name = super().name + " L3"
+        label = super().label + " L3"
