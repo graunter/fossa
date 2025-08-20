@@ -142,7 +142,7 @@ class SettingsFrame(ttk.TTkFrame):
         tableModel = ttk.TTkTableModelList(data=hol_tbl, header=self.head_hol_tbl)
         self.hol_table.setModel(tableModel)
         self.hol_table.resizeRowsToContents()
-        self.hol_table.resizeColumnsToContents()
+        # self.hol_table.resizeColumnsToContents()
 
     def on_set_current_btn(self):
 
@@ -177,7 +177,7 @@ class SettingsFrame(ttk.TTkFrame):
         tax_tableModel = ttk.TTkTableModelList(data=tax_tbl, header=self.head_tax_tbl)
         self.tax_table.setModel(tax_tableModel)
         self.tax_table.resizeRowsToContents()
-        self.tax_table.resizeColumnsToContents()
+        # self.tax_table.resizeColumnsToContents()
 
         self.month_label.setText(f'{ self.mlst.currentText()}')
 

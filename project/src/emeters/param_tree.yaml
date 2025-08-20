@@ -1,0 +1,45 @@
+
+pwr_meter:
+  type: Milur
+
+  parameters:
+    - name: Frequency
+      param_type: plain
+      description: Main network frequensy
+      req_id: ReqId.freq
+      hw_id_req: FREQ_ID_DATA
+      converter: DType.UDigitData
+      data_size: 2
+      scale: 1000
+
+    - name: Power Factor
+      param_type: composit    
+      description: The ratio of the real power to the apparent power
+      req_id: ReqId.freq
+      hw_id_req: mconst.PF
+      converter: DType.UIntArr
+      data_size: 16
+
+      childs:
+
+      - name: PF All
+        param_type: leaf
+        data_size: 4
+        scale: 1    
+
+      - name: PF L1
+        param_type: leaf
+        data_size: 4
+        scale: 1   
+
+      - name: PF L2
+        param_type: leaf
+        data_size: 4
+        scale: 1   
+
+      - name: PF L3
+        param_type: leaf
+        data_size: 4
+        scale: 1   
+
+

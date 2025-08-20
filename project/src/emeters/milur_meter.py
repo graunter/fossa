@@ -1,7 +1,7 @@
 
 import time
 import serial   #pip install pyserial
-import milur_const as mconst
+import emeters.milur_const as mconst
 from  emeters.milur_meter_const import *
 from collections import namedtuple
 import threading
@@ -140,7 +140,7 @@ class MilurMeter:
         , 14: "ACCESS_BLOCKED"
     }
 
-    MIN_RESP_LEN = 3
+    MIN_RESP_LEN = 6
 
     def raise_with_dbg_data(self, msg, tx=None, rx=None):
         raise ProtocolException(
@@ -152,6 +152,7 @@ class MilurMeter:
         
     def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
+        tx_cmd_id = pdu[1]
 
         with self.ph as ph:
             ph.reset_input_buffer()
@@ -160,9 +161,14 @@ class MilurMeter:
             #TODO: read len should be calculated
             # adr id_cmd _id_obj len crc1 crc2
 
-            long_time_commands = { mconst.SETRTC_ID_CMD:0.1 }
-            if (tx_cmd_id := pdu[1]) in long_time_commands.keys():
-                time.sleep(long_time_commands[tx_cmd_id])
+            long_time_commands = { 
+                mconst.SETRTC_ID_CMD:0.1 
+                , mconst.GET_ENTALIST_ID_CMD:0.05
+                , mconst.GET_COLLECTION_ID_CMD:0.1
+            }
+
+            # if (tx_cmd_id := pdu[1]) in long_time_commands.keys():
+            #     time.sleep(long_time_commands[tx_cmd_id])
 
             # TODO: Should we read with no_response flag? 
             # check this part of SM 
@@ -171,6 +177,11 @@ class MilurMeter:
             if no_resp_fl and not resp:
                 return
             
+            if len(resp) < 6 and tx_cmd_id  in long_time_commands.keys():
+                time.sleep(long_time_commands[tx_cmd_id])
+                add_resp = ph.read(6)
+                resp = resp + add_resp
+
             if resp == b'':
                 self.raise_with_dbg_data('No response from device', send_packet) 
 
@@ -242,6 +253,9 @@ class MilurMeter:
                 next_read_size = resp[3] + 1
                 resp_next = ph.read(next_read_size)   
 
+                if next_read_size < len(resp_next):
+                    self.raise_with_dbg_data(f'Short response Err in GET_COLLECTION_ID_CMD ', send_packet, resp+resp_next) 
+
                 #TODO: set timeout to 3.5 chars and read no sumbols
                 # resp_extra = self.port.read(3)
                 # if resp_extra:
@@ -294,6 +308,80 @@ class MilurMeter:
 
         send_dat = [self.adr, cmd, obj_id, Seconds, Minutes, Hours, DayInWeek, Day, Month, Year]  
         in_dat = self.run_request(send_dat)
+
+    def rd_all_electricity(self) -> list:
+        cmd = mconst.GET_COLLECTION_ID_CMD
+        obj_id = 2
+        send_dat = [self.adr, cmd, obj_id, 1, 0]        
+        
+        in_dat = self.run_request(send_dat)
+       
+        if len(in_dat)==0:
+            pass    # for breakpoint
+
+        try:
+            dlen = 4
+            records = []
+            dat = in_dat
+            for cnt in range(12):
+                records.append( digit := int.from_bytes(dat[cnt*dlen:(cnt+1)*dlen], byteorder='little', signed=True)/1000 )
+
+            pwr_lst  = [str(item) for item in records]
+        except Exception as e:
+            raise ProtocolException(
+                f'Can"t parse power records'
+                , f'TX: [{str(send_dat)}], '
+                , f'RX: [{str(dat)}]' 
+        )  
+
+        try:
+            dat = dat[(cnt+1)*dlen:]
+            dlen = 3
+            records = []
+            for cnt in range(3):
+                records.append( digit := int.from_bytes(dat[cnt*dlen:(cnt+1)*dlen], byteorder='little', signed=True)/1000) 
+
+            v_lst = [str(item) for item in records]
+        except Exception as e:
+            raise ProtocolException(
+                f'Can"t parse voltage records'
+                , f'TX: [{str(send_dat)}], '
+                , f'RX: [{str(dat)}]' 
+        )  
+
+        try:
+            dat = dat[(cnt+1)*dlen:]
+            dlen = 3
+            records = []
+            for cnt in range(3):
+                records.append( digit := int.from_bytes(dat[cnt*dlen:(cnt+1)*dlen], byteorder='little', signed=True)/1000) 
+
+            i_lst = [str(item) for item in records]
+        except Exception as e:
+            raise ProtocolException(
+                f'Can"t parse current records'
+                , f'TX: [{str(send_dat)}], '
+                , f'RX: [{str(dat)}]' 
+        )              
+
+
+
+        try:
+            last_dat = dat[(cnt+1)*dlen:]
+            freq = 0
+            tax = 0
+            time = 0
+            freq = str(int.from_bytes(last_dat[0:2], byteorder='little', signed=False)/1000)
+            tax = str(int.from_bytes(last_dat[2:3], byteorder='little', signed=False))
+            time, _ = self.decode_rtc_to_liststr(last_dat[3:3+7])
+        except Exception as e:
+            raise ProtocolException(
+                f'Can"t parse misc records: {str(freq)}, {str(tax)}, {str(time)} from {str(last_dat)}'
+                , f'TX: [{str(send_dat)}], '
+                , f'RX: [{str(last_dat)}]' 
+        )    
+
+        return pwr_lst + v_lst + i_lst + [freq, tax] + [':'.join( time )]
 
 
     def rd_split(self) -> list:
@@ -630,6 +718,13 @@ class MilurMeter:
         return pf_tbl
 
 
+    def decode_month_name_to_digit(self, month: str):
+        months_lst = ['JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        try:
+            idx = 1 + months_lst.index(month)
+            return idx
+        except Exception as e: 
+            raise ProtocolException(f'Wrong month name: {str(e)}')
 
     
     def decode_rtc_to_liststr(self, in_dat: bytes):

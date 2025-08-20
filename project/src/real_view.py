@@ -117,6 +117,29 @@ class RealFrame(ttk.TTkFrame):
         self.momentum_frame.layout().addWidget(self.moment_table)
             #---< Momentum            
 
+            #---> Electro
+
+        self.electro_head = [
+            'PA', 'PB', 'PC', 'PSum', 
+            'QA', 'QB', 'QC', 'QSum', 
+            'TA', 'TB', 'TC', 'TSum', 
+            'VA', 'VB', 'VC', 
+            'IA', 'IB', 'IC', 
+            'F', 
+            'Tax', 
+            'RTC'
+        ]
+        self.electro_tbl = [ ['--------' for _ in range( len(self.electro_head) ) ] ]
+        electro_tableModel = ttk.TTkTableModelList(data=self.electro_tbl, header=self.electro_head)        
+        self.electro_table = ttk.TTkTable(tableModel=momentum_tableModel)
+        self.electro_table.resizeRowsToContents()
+        self.electro_table.resizeColumnsToContents()
+        
+        self.electro_frame = ttk.TTkFrame(border=True, visible=False)
+        self.electro_frame.setLayout(ttk.TTkVBoxLayout()) 
+        self.electro_frame.layout().addWidget(self.electro_table)
+            #---< Electro   
+
             #---> Split
         self.split_head = [
             'PASum', 'PA1' , 'PA2' , 'PA3' , 'PA4' , 'PA5' , 'PA6' , 'PA7' , 'PA8',
@@ -153,8 +176,11 @@ class RealFrame(ttk.TTkFrame):
 
             #---< Split 
 
+
+
         groups_tab = ttk.TTkTabWidget(border=False, visible=True)
         groups_tab.addTab(self.momentum_frame, " Momentum ")
+        groups_tab.addTab(self.electro_frame, " Electro ")
         groups_tab.addTab(self.split_frame, " Split ")        
 
         self.group_frame = ttk.TTkFrame(border=True, visible=False)
@@ -190,6 +216,18 @@ class RealFrame(ttk.TTkFrame):
         self.moment_table.setModel(momentum_tableModel)
         self.moment_table.resizeRowsToContents()
         self.moment_table.resizeColumnsToContents()
+
+        try:
+            meas = self.device.rd_all_electricity()
+        except Exception as e:
+            txt = f'{str(e)}'
+            meas = [ [txt]  ]
+
+        electro_tableModel = ttk.TTkTableModelList(data=[meas], header=self.electro_head)  
+        self.electro_table.setModel(electro_tableModel)
+        self.electro_table.resizeRowsToContents()
+        self.electro_table.resizeColumnsToContents()
+
 
         try:
             meas = self.device.rd_split()
