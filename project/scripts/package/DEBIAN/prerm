@@ -2,8 +2,10 @@
 
 service fossa stop
 
-sleep 10
+update-rc.d fossa remove
 
-rm -fr /var/log/fossa
-rm -fr /var/fossa
+sleep 3
+
+#rm -fr /var/log/fossa
+#rm -fr /var/fossa
 #rm -fr /opt/fossa/__pycache__
