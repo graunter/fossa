@@ -586,6 +586,13 @@ class MilurMeter:
         return mounth_record
             
 
+    def clr_pwi_record(self):
+        cmd = mconst.LISTINIT_ID_CMD
+        obj_id = mconst.PWI_ID_DATA
+        send_dat = [self.adr, cmd, obj_id]
+        in_dat = self.run_request(send_dat, True)
+        time.sleep(2)   
+
     def rd_pwi_record(self, idx: int):
         # TODO: move ti list init Fn
         # cmd = mconst.LISTINIT_ID_CMD

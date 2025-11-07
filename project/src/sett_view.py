@@ -100,10 +100,23 @@ class SettingsFrame(ttk.TTkFrame):
 
         #---< holidays
 
+        #---> PWI records
+
+        self.rec_frame = ttk.TTkFrame()
+        self.rec_frame.setLayout(ttk.TTkVBoxLayout())
+
+        self.clear_hh_table_btn = ttk.TTkButton(text='Clear hours pwi', border=True, maxHeight = 5 )
+        self.clear_hh_table_btn.clicked.connect(self.on_clear_hh_tbl_btn)        
+
+        self.rec_frame.layout().addWidget(self.clear_hh_table_btn)
+
+        #---< PWI records
+
         tbl_tab = ttk.TTkTabWidget(border=False, visible=True)
         tbl_tab.addTab(self.time_frame, " Device time ")        
         tbl_tab.addTab(self.tax_frame, " tax table ")
         tbl_tab.addTab(self.hol_frame, " holidays ")
+        tbl_tab.addTab(self.rec_frame, " Init ")
 
 
         self.setLayout(ttk.TTkVBoxLayout())
@@ -187,6 +200,19 @@ class SettingsFrame(ttk.TTkFrame):
 
     def on_upd(self):
         self.on_read_tax_btn()
+
+
+
+    def on_clear_hh_tbl_btn(self):
+
+        try:
+            self.device.clr_pwi_record()
+
+        except Exception as e:
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            return
+
 
 
 
