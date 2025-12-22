@@ -70,7 +70,7 @@ class MilurMeter:
     # TODO: this check is not protected by semaphore
     @staticmethod
     def check_resp_on_adr(adr: int, port: serial.Serial, sem: threading.Semaphore = None) -> bool:
-        send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_ADM_USER], list(mconst.ACCESS_PWD_USER)], [])
+        send_dat = sum([[adr], [mconst.AOPEN_ID_CMD], [mconst.ACCESS_LVL_USER], list(mconst.ACCESS_PWD_USER)], [])
         send_packet = create_packet_from_dat(send_dat)
 
         #TODO: fast stub
@@ -83,6 +83,11 @@ class MilurMeter:
                     port.open()
                 port.write(send_packet)
                 received = port.read(128)
+
+                last_send_dat = sum([[adr], [mconst.ARELEASE_ID_CMD], [0]], [])
+                last_send_packet = create_packet_from_dat(last_send_dat)
+                port.write(last_send_packet)
+                last_received = port.read(128)
         except:
             return False
 
@@ -292,6 +297,11 @@ class MilurMeter:
 
         return in_data
 
+    def wr_soft_time(self, diff_sec, period):
+
+        cmd = mconst.SET_SOFT_RTC_CORRECTION_ID_CMD
+        send_dat = [self.adr, cmd, diff_sec, period]  
+        in_dat = self.run_request(send_dat)
 
     def wr_rtc(self, dt: datetime):
         cmd = mconst.SETRTC_ID_CMD
@@ -738,11 +748,11 @@ class MilurMeter:
         seconds = str(in_dat[0]).zfill(2)
         minutes = str(in_dat[1]).zfill(2)
         hours = str(in_dat[2]).zfill(2)
-        dow = ['ERR', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+        dow = ['ERR', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         doweek_idx = in_dat[3]
         doweek = str(dow[doweek_idx]) if doweek_idx < len(dow) else 'Err'
         days = str(in_dat[4]).zfill(2)
-        months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        months_lst = ['ERR', 'Jan' , 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         months_idx = in_dat[5]
         months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
         years = str(2000 + in_dat[6])

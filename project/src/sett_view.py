@@ -30,8 +30,13 @@ class SettingsFrame(ttk.TTkFrame):
         #---> Time
         self.rtc_dev = ttk.TTkLabel(text = 'NA')
         self.comp_time = ttk.TTkLabel(text = datetime.now().strftime('%S:%M:%H:%a:%d:%m:%Y') )
-        self.set_time_btn = ttk.TTkButton(text="Set current time")
+        self.time_diff = ttk.TTkLabel(text = 'NA')
+        self.set_time_btn = ttk.TTkButton(text="Set current time", maxHeight=3)
         self.set_time_btn.clicked.connect(self.on_set_current_btn)
+        self.adj_time_sec = ttk.TTkSpinBox(value=10, minimum=0, maximum=255, maxWidth = 25, maxHeight=3)
+        self.adj_period_min = ttk.TTkSpinBox(value=1, minimum=0, maximum=255, maxWidth = 25, maxHeight=3)        
+        self.soft_time_btn = ttk.TTkButton(text="Soft time correction", maxWidth = 25, maxHeight=3)
+        self.soft_time_btn.clicked.connect(self.on_soft_correct_btn) 
 
         self.time_frame =  ttk.TTkFrame(visible=False)
         self.time_frame.setLayout(ttk.TTkGridLayout())
@@ -40,8 +45,21 @@ class SettingsFrame(ttk.TTkFrame):
         self.time_frame.layout().addWidget(self.rtc_dev, 0,1)
         self.time_frame.layout().addWidget(ttk.TTkLabel(text="Local time", maxWidth = 25, maxHeight=3), 1,0)         
         self.time_frame.layout().addWidget(self.comp_time, 1,1)    
-        self.time_frame.layout().addWidget(self.set_time_btn, 3,0)            
-        self.time_frame.layout().addWidget(ttk.TTkSpacer(), 5,0)
+        self.time_frame.layout().addWidget(ttk.TTkLabel(text="Time difference", maxWidth = 25, maxHeight=3), 2,0)          
+        self.time_frame.layout().addWidget(self.time_diff, 2,1)    
+        self.time_frame.layout().addWidget(self.set_time_btn, 3,1)  
+
+        self.time_frame.layout().addWidget(ttk.TTkSpacer(maxHeight=3), 4,0)
+        self.time_frame.layout().addWidget(ttk.TTkLabel(text="Soft time correction", maxWidth = 25, maxHeight=3), 5,0)        
+         
+        self.time_frame.layout().addWidget(ttk.TTkLabel(text="Adjust value in seconds", maxWidth = 25, maxHeight=3), 6,0)  
+        self.time_frame.layout().addWidget(self.adj_time_sec, 6, 1)
+        self.time_frame.layout().addWidget(ttk.TTkLabel(text="Duration in minutes", maxWidth = 25, maxHeight=3), 7,0)  
+        self.time_frame.layout().addWidget(self.adj_period_min, 7, 1)
+        self.time_frame.layout().addWidget(self.soft_time_btn, 8,1)         
+
+        self.time_frame.layout().addWidget(ttk.TTkSpacer(), 10,3)
+        self.time_frame.layout().addWidget(ttk.TTkSpacer(), 10,0)
 
         self.pause_visit_fl = True
 
@@ -132,9 +150,21 @@ class SettingsFrame(ttk.TTkFrame):
                     #     item.upd_from_dev()
                     if self.time_frame.isVisible() and self.isVisible():
                         if self.device:
-                            self.rtc_dev.setText(self.device.rd_str(ReqId.rtc))
+                            remote_rtc = self.device.rd_str(ReqId.rtc)
+                            self.rtc_dev.setText(remote_rtc)
 
-                        self.comp_time.setText(datetime.now().strftime('%S:%M:%H:%a:%d:%m:%Y'))
+                        format_string = '%S:%M:%H:%a:%d:%b:%Y'
+
+                        try:
+                            comp_time = datetime.now()
+                            self.comp_time.setText(comp_time.strftime(format_string))
+
+                            remote_rtc_dtime = datetime.strptime(remote_rtc, format_string)
+                            time_diff = comp_time - remote_rtc_dtime
+                            self.time_diff.setText(str(time_diff))
+
+                        except Exception as e:
+                            pass
 
                 except serial.SerialException as e:
                     #todo
@@ -156,6 +186,19 @@ class SettingsFrame(ttk.TTkFrame):
         self.hol_table.setModel(tableModel)
         self.hol_table.resizeRowsToContents()
         # self.hol_table.resizeColumnsToContents()
+
+    def on_soft_correct_btn(self):
+        try:
+            self.pause_visit_fl = True
+            time.sleep(1)
+   
+            self.device.wr_soft_time(self.adj_time_sec.value(), self.adj_period_min.value())
+            self.pause_visit_fl = False            
+        except Exception as e:
+            # TODO: unexpected error sometime happened
+            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            self.pause_visit_fl = False          
 
     def on_set_current_btn(self):
 
