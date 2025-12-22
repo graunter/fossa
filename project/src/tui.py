@@ -97,9 +97,12 @@ def create_btn_for_frame(init_state: bool, next_frame: ttk.TTkFrame) -> ttk.TTkB
 def close_serial():
     global g_ser
     global g_pause_visit_fl
+    global g_cnt_lst
 
     g_ser.close()
     g_mb_open_btn.setChecked(False)
+
+    g_cnt_lst.clear()
 
     bg_color = ttk.TTkColor.BG_WHITE
     btn_text=ttk.TTkString(' Open ', bg_color)
