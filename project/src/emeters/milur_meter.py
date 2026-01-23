@@ -820,12 +820,12 @@ class MilurMeter:
         return [seconds, minutes, hours, days, months, years], in_dat[6:]
 
 
-    def decode_PacDec_to_str(self, in_dat: bytes, scale = 1):
+    def decode_PacDec_to_str(self, in_dat: bytes, scale = 0):
         in_digit = in_dat.hex().removesuffix('F')
         if set(in_digit) =={'0'}:
             return '0'
         in_digit = in_digit[::-1]
-        if scale !=1:
+        if scale !=0:
             in_real = in_digit[0:len(in_digit)-scale:] + '.' + in_digit[len(in_digit)-scale:]
         else:
             in_real = in_digit
@@ -891,67 +891,64 @@ class MilurMeter:
         return txt
         
 
-    Msg = namedtuple("Msg", "dtype id len scale", defaults=(None, None, None, 1))
+    Msg = namedtuple("Msg", "name label unite dtype id len scale", defaults=('-', '', '', None, None, None, 1))
 
     trans_str_tbl = { 
-          ReqId.model: Msg(DType.StrData, mconst.MODEL_ID_DATA, 14)  
-        , ReqId.fw_ver: Msg(DType.StrData, mconst.FW_ID_DATA, 4)
-        , ReqId.serial_num: Msg(DType.StrData, mconst.SN_ID_DATA, 15)
-        , ReqId.prod_date: Msg(DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
-        , ReqId.cur_rate: Msg(DType.DigitData, mconst.RATE_ID_DATA, 1)
-        , ReqId.freq: Msg(DType.UDigitData, mconst.FREQ_ID_DATA, 2, 1000)
-        , ReqId.v_scale: Msg(DType.VScaleData, mconst.SCALE_ID_DATA, 4)
-        , ReqId.i_scale: Msg(DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
+          ReqId.model: Msg("Model name", 'model', '',               DType.StrData, mconst.MODEL_ID_DATA, 14)  
+        , ReqId.fw_ver: Msg("Firmware version", 'fw-version', '',   DType.StrData, mconst.FW_ID_DATA, 4)
+        , ReqId.serial_num: Msg("Serial number", 'sn',              DType.StrData, mconst.SN_ID_DATA, 15)
+        , ReqId.prod_date: Msg("Production date", 'manufactured', "ss.mm.hh.dow.dd.mm.yyyy", DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
+        , ReqId.cur_rate: Msg("Rate", 'tarrif', '',                 DType.DigitData, mconst.RATE_ID_DATA, 1)
+        , ReqId.freq: Msg("Frequency", "Frequency", "Hz",           DType.UDigitData, mconst.FREQ_ID_DATA, 2, 1000)
+        , ReqId.v_scale: Msg("Voltage scale", "k_voltage",          DType.VScaleData, mconst.SCALE_ID_DATA, 4)
+        , ReqId.i_scale: Msg("Current scale", "k-current", '',      DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
         
-        , ReqId.rtc: Msg(DType.RtcData, mconst.RTC_ID_DATA, 7)
-        , ReqId.calc_day: Msg(DType.DigitData, mconst.CALC_DAY_ID_DATA, 1)
+        , ReqId.rtc: Msg("RTC", "time", "ss.mm.hh.dow.dd.mm.yyyy",  DType.RtcData, mconst.RTC_ID_DATA, 7)
+        , ReqId.calc_day: Msg("Calc day", "calc-day", "DoM",        DType.DigitData, mconst.CALC_DAY_ID_DATA, 1)
 
-        , ReqId.UPhA: Msg(DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
-        , ReqId.IPhA: Msg(DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
+        , ReqId.UPhA: Msg("A Phase voltage", "Urms L1", "V",        DType.DigitData, mconst.UA_ID_DATA, 3, 1000)
+        , ReqId.IPhA: Msg("A Phase current", "Irms L1", "A",        DType.DigitData, mconst.IA_ID_DATA, 3, 1000)
  
-
-        , ReqId.UPhB: Msg(DType.DigitData, mconst.UB_ID_DATA, 3, 1000)
-        , ReqId.IPhB: Msg(DType.DigitData, mconst.IB_ID_DATA, 3, 1000)
+        , ReqId.UPhB: Msg("B Phase voltage", "Urms L1", "V",        DType.DigitData, mconst.UB_ID_DATA, 3, 1000)
+        , ReqId.IPhB: Msg("B Phase current", "Irms L2", "A",        DType.DigitData, mconst.IB_ID_DATA, 3, 1000)
  
+        , ReqId.UPhC: Msg("A Phase voltage", "Urms L3", "V",        DType.DigitData, mconst.UC_ID_DATA, 3, 1000)
+        , ReqId.IPhC: Msg("A Phase current", "Irms L3", "A",        DType.DigitData, mconst.IC_ID_DATA, 3, 1000)
 
-        , ReqId.UPhC: Msg(DType.DigitData, mconst.UC_ID_DATA, 3, 1000)
-        , ReqId.IPhC: Msg(DType.DigitData, mconst.IC_ID_DATA, 3, 1000)
+        , ReqId.PwrA: Msg("A Total power", "S L1", "VA",            DType.DigitData, mconst.PA_ID_DATA, 4, 1000) 
+        , ReqId.PwrB: Msg("B Total power", "S L2", "VA",            DType.DigitData, mconst.PB_ID_DATA, 4, 1000) 
+        , ReqId.PwrC: Msg("C Total power", "S L3", "VA",            DType.DigitData, mconst.PC_ID_DATA, 4, 1000)     
+        , ReqId.Pwr: Msg("Total power", "Total S", "VA",            DType.DigitData, mconst.P_ID_DATA, 4, 1000)                            
 
-        , ReqId.PwrA: Msg(DType.DigitData, mconst.PA_ID_DATA, 4, 1000) 
-        , ReqId.PwrB: Msg(DType.DigitData, mconst.PB_ID_DATA, 4, 1000) 
-        , ReqId.PwrC: Msg(DType.DigitData, mconst.PC_ID_DATA, 4, 1000)     
-        , ReqId.Pwr: Msg(DType.DigitData, mconst.P_ID_DATA, 4, 1000)                            
+        , ReqId.ActPwrA: Msg("Active power", "P L1", "W",           DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
+        , ReqId.ActPwrB: Msg("B Active power", "P L2", "W",         DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
+        , ReqId.ActPwrC: Msg("C Active power", "P L3", "W",         DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
+        , ReqId.ActPwr: Msg("Total Active power", "Total P", "W",   DType.DigitData, mconst.AP_ID_DATA, 4, 1000)   
 
-        , ReqId.ActPwrA: Msg(DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
-        , ReqId.ActPwrB: Msg(DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
-        , ReqId.ActPwrC: Msg(DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
-        , ReqId.ActPwr: Msg(DType.DigitData, mconst.AP_ID_DATA, 4, 1000)   
+        , ReqId.ReActPwrA: Msg("A ReActive power", "Q L1", "var",     DType.DigitData, mconst.RPA_ID_DATA, 4, 1000)     
+        , ReqId.ReActPwrB: Msg("B ReActive power", "Q L2", "var",     DType.DigitData, mconst.RPB_ID_DATA, 4, 1000)  
+        , ReqId.ReActPwrC: Msg("C ReActive power", "Q L3", "var",     DType.DigitData, mconst.RPC_ID_DATA, 4, 1000)             
+        , ReqId.ReActPwr: Msg("Total ReActive power", "Total Q", "var", DType.DigitData, mconst.RP_ID_DATA, 4, 1000)   
 
-        , ReqId.ReActPwrA: Msg(DType.DigitData, mconst.RPA_ID_DATA, 4, 1000)     
-        , ReqId.ReActPwrB: Msg(DType.DigitData, mconst.RPB_ID_DATA, 4, 1000)  
-        , ReqId.ReActPwrC: Msg(DType.DigitData, mconst.RPC_ID_DATA, 4, 1000)             
-        , ReqId.ReActPwr: Msg(DType.DigitData, mconst.RP_ID_DATA, 4, 1000)   
+        , ReqId.Active_imp_e: Msg("Active in energy sum", "AP", "W*h", DType.PacDecData, mconst.AIE_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_1: Msg("Active in energy sum", "AP-t1", "W*h", DType.PacDecData, mconst.AIE_T1_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_2: Msg("Active in energy sum", "AP-t2", "W*h", DType.PacDecData, mconst.AIE_T2_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_3: Msg("Active in energy sum", "AP-t3", "W*h", DType.PacDecData, mconst.AIE_T3_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_4: Msg("Active in energy sum", "AP-t4", "W*h", DType.PacDecData, mconst.AIE_T4_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_5: Msg("Active in energy sum", "AP-t5", "W*h", DType.PacDecData, mconst.AIE_T5_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_6: Msg("Active in energy sum", "AP-t6", "W*h", DType.PacDecData, mconst.AIE_T6_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_7: Msg("Active in energy sum", "AP-t7", "W*h", DType.PacDecData, mconst.AIE_T7_ID_DATA, 4, 0)  
+        , ReqId.Active_imp_e_8: Msg("Active in energy sum", "AP-t8", "W*h", DType.PacDecData, mconst.AIE_T8_ID_DATA, 4, 0)        
 
-        , ReqId.Active_imp_e: Msg(DType.PacDecData, mconst.AIE_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_1: Msg(DType.PacDecData, mconst.AIE_T1_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_2: Msg(DType.PacDecData, mconst.AIE_T2_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_3: Msg(DType.PacDecData, mconst.AIE_T3_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_4: Msg(DType.PacDecData, mconst.AIE_T4_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_5: Msg(DType.PacDecData, mconst.AIE_T5_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_6: Msg(DType.PacDecData, mconst.AIE_T6_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_7: Msg(DType.PacDecData, mconst.AIE_T7_ID_DATA, 4, 2)  
-        , ReqId.Active_imp_e_8: Msg(DType.PacDecData, mconst.AIE_T8_ID_DATA, 4, 2)        
-
-
-        , ReqId.ReAct_imp_e: Msg(DType.PacDecData, mconst.RIE_ID_DATA, 4, 2)                    
-        , ReqId.ReAct_imp_e_1: Msg(DType.PacDecData, mconst.RIE_T1_ID_DATA, 4, 2)          
-        , ReqId.ReAct_imp_e_2: Msg(DType.PacDecData, mconst.RIE_T2_ID_DATA, 4, 2)  
-        , ReqId.ReAct_imp_e_3: Msg(DType.PacDecData, mconst.RIE_T3_ID_DATA, 4, 2)  
-        , ReqId.ReAct_imp_e_4: Msg(DType.PacDecData, mconst.RIE_T4_ID_DATA, 4, 2)   
-        , ReqId.ReAct_imp_e_5: Msg(DType.PacDecData, mconst.RIE_T5_ID_DATA, 4, 2)          
-        , ReqId.ReAct_imp_e_6: Msg(DType.PacDecData, mconst.RIE_T6_ID_DATA, 4, 2)  
-        , ReqId.ReAct_imp_e_7: Msg(DType.PacDecData, mconst.RIE_T7_ID_DATA, 4, 2)  
-        , ReqId.ReAct_imp_e_8: Msg(DType.PacDecData, mconst.RIE_T8_ID_DATA, 4, 2)                                 
+        , ReqId.ReAct_imp_e: Msg("ReActive in energy sum", "RP", "W*h", DType.PacDecData, mconst.RIE_ID_DATA, 4, 0)                    
+        , ReqId.ReAct_imp_e_1: Msg("ReActive in energy sum", "RP-t1", "W*h", DType.PacDecData, mconst.RIE_T1_ID_DATA, 4, 0)          
+        , ReqId.ReAct_imp_e_2: Msg("ReActive in energy sum", "RP-t2", "W*h", DType.PacDecData, mconst.RIE_T2_ID_DATA, 4, 0)  
+        , ReqId.ReAct_imp_e_3: Msg("ReActive in energy sum", "RP-t3", "W*h", DType.PacDecData, mconst.RIE_T3_ID_DATA, 4, 0)  
+        , ReqId.ReAct_imp_e_4: Msg("ReActive in energy sum", "RP-t4", "W*h", DType.PacDecData, mconst.RIE_T4_ID_DATA, 4, 0)   
+        , ReqId.ReAct_imp_e_5: Msg("ReActive in energy sum", "RP-t5", "W*h", DType.PacDecData, mconst.RIE_T5_ID_DATA, 4, 0)          
+        , ReqId.ReAct_imp_e_6: Msg("ReActive in energy sum", "RP-t6", "W*h", DType.PacDecData, mconst.RIE_T6_ID_DATA, 4, 0)  
+        , ReqId.ReAct_imp_e_7: Msg("ReActive in energy sum", "RP-t7", "W*h", DType.PacDecData, mconst.RIE_T7_ID_DATA, 4, 0)  
+        , ReqId.ReAct_imp_e_8: Msg("ReActive in energy sum", "RP-t8", "W*h", DType.PacDecData, mconst.RIE_T8_ID_DATA, 4, 0)                                 
     }
 
 
