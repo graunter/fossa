@@ -32,7 +32,12 @@ g_info_frame: HardInfoFrame
 g_mb_adr_ledit: ttk.TTkLineEdit
 g_sett_frame: sview.SettingsFrame
 g_rec_frame: rview.RecordsFrame
-
+r1: ttk.TTkRadioButton
+r2: ttk.TTkRadioButton
+r3: ttk.TTkRadioButton
+pass1: ttk.TTkLineEdit
+pass2: ttk.TTkLineEdit
+pass3: ttk.TTkLineEdit
 
 def serial_ports():
     """ Lists serial port names
@@ -120,6 +125,11 @@ def on_mb_open_btn():
     global g_pull_visit_thrd
     global g_cnt_lst
     global g_sema
+    global r2
+    global r3
+    global pass1
+    global pass2
+    global pass3
 
     port_name = g_mb_port_name.text()
 
@@ -155,6 +165,22 @@ def on_mb_open_btn():
         adapter = mtr.MilurMeter(mb_adr)#, g_ser, g_sema))
         #TODO: semaphore must be set here
         adapter.link(g_ser)#, g_sema)
+
+        access_lvl = ACCESS_LVL_USER
+        pass_string = pass1.text()
+
+        if r2.checkState() is ttk.TTkK.Checked:
+            access_lvl = ACCESS_ADM_USER
+            pass_string = pass2.text()
+        elif r3.checkState() is ttk.TTkK.Checked:
+            access_lvl = ACCESS_DEV_USER
+            pass_string = pass3.text()
+
+        pass_for_dev = [int(h, 16) for h in pass_string._text.split()]
+
+        if ACCESS_LVL_USER != access_lvl:
+            adapter.login(access_lvl, pass_for_dev)
+
         g_cnt_lst.append(adapter)
 
         g_info_frame.set_device(g_cnt_lst[0])
@@ -222,7 +248,13 @@ def build_main_screen(root=None):
     global g_view_frame
     global g_sett_frame
     global g_rec_frame
-
+    global r1
+    global r2
+    global r3
+    global pass1
+    global pass2
+    global pass3
+    
     root_layout = ttk.TTkGridLayout()
     root.setLayout(root_layout)
 
@@ -297,7 +329,7 @@ def build_main_screen(root=None):
     usr_line.addWidget(r1 := ttk.TTkRadioButton(text="User", radiogroup="log_names", maxWidth = 12, checked=True))
     #usr_line.addWidget(ttk.TTkLabel(text="User", size=(10,1), maxWidth = 20))
     #usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
-    usr_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", size=(35,1), minWidth = 35, maxWidth = 35))
+    usr_line.addWidget(pass1 := ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", size=(35,1), minWidth = 35, maxWidth = 35))
     usr_line.addWidget(ttk.TTkLabel(text=" "))
     usr_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     usr_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
@@ -307,10 +339,10 @@ def build_main_screen(root=None):
     adm_layout = ttk.TTkHBoxLayout()
     adm_line.setLayout(adm_layout)
     adm_line.addWidget(ttk.TTkSpacer())
-    adm_line.addWidget(r1 := ttk.TTkRadioButton(text="Admin", radiogroup="log_names", maxWidth = 12))
+    adm_line.addWidget(r2 := ttk.TTkRadioButton(text="Admin", radiogroup="log_names", maxWidth = 12))
     #adm_line.addWidget(ttk.TTkLabel(text="Admin", size=(10,1), maxWidth = 20))
     #adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
-    adm_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", size=(35,1), minWidth = 35, maxWidth = 35))
+    adm_line.addWidget(pass2 := ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", size=(35,1), minWidth = 35, maxWidth = 35))
     adm_line.addWidget(ttk.TTkLabel(text=" "))
     adm_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     adm_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
@@ -320,10 +352,10 @@ def build_main_screen(root=None):
     dev_layout = ttk.TTkHBoxLayout()
     dev_line.setLayout(dev_layout)
     dev_line.addWidget(ttk.TTkSpacer())
-    dev_line.addWidget(r1 := ttk.TTkRadioButton(text="Developer", radiogroup="log_names", maxWidth = 12))
+    dev_line.addWidget(r3 := ttk.TTkRadioButton(text="Developer", radiogroup="log_names", maxWidth = 12))
     #dev_line.addWidget(ttk.TTkLabel(text="Developer", size=(10,1), maxWidth = 20))
     #dev_line.addWidget(ttk.TTkLineEdit(text="0xFF 0xFF 0xFF 0xFF 0xFF 0xFF", inputType=ttk.TTkK.Input_Password))
-    dev_line.addWidget(ttk.TTkLineEdit(text="", size=(35,1), minWidth = 35, maxWidth = 35))
+    dev_line.addWidget(pass3 := ttk.TTkLineEdit(text="", size=(35,1), minWidth = 35, maxWidth = 35))
     dev_line.addWidget(ttk.TTkLabel(text=" "))
     dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))
     dev_line.addWidget(ttk.TTkCheckbox(checked=False, maxWidth = 3))

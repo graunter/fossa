@@ -128,6 +128,14 @@ class MilurMeter:
         self.run_request(send_dat, True)
 
 
+
+    def raise_with_dbg_data(self, msg, tx=None, rx=None):
+        raise ProtocolException(
+            f'{msg}'
+            , f'TX: [{str(tx)}], '
+            , f'RX: [{str(rx)}]' 
+        )         
+
     RespErrCode = {
         1: "ILLEGAL_FUNCTION"
         , 2: "ILLEGAL_DATA_ADDRESS"
@@ -145,16 +153,14 @@ class MilurMeter:
         , 14: "ACCESS_BLOCKED"
     }
 
-    MIN_RESP_LEN = 6
+    MIN_RESP_LEN = 6   
 
-    def raise_with_dbg_data(self, msg, tx=None, rx=None):
-        raise ProtocolException(
-            f'{msg}'
-            , f'TX: [{str(tx)}], '
-            , f'RX: [{str(rx)}]' 
-        )         
+    POS_ADR = 0     
+    POS_CODE = 1
+    POS_ERR = 2
+    POS_LEN = 3
+    POS_DAT = 4
 
-        
     def run_request(self, pdu: list, no_resp_fl=False) -> bytes:
         send_packet = create_packet_from_dat(pdu)  
         tx_cmd_id = pdu[1]
@@ -177,24 +183,25 @@ class MilurMeter:
 
             # TODO: Should we read with no_response flag? 
             # check this part of SM 
-            resp = ph.read(6)
+            resp = ph.read(self.MIN_RESP_LEN)
 
             if no_resp_fl and not resp:
                 return
             
-            if len(resp) < 6 and tx_cmd_id  in long_time_commands.keys():
+            if len(resp) < self.MIN_RESP_LEN and tx_cmd_id  in long_time_commands.keys():
                 time.sleep(long_time_commands[tx_cmd_id])
-                add_resp = ph.read(6)
+                add_resp = ph.read(self.MIN_RESP_LEN)
                 resp = resp + add_resp
 
             if resp == b'':
                 self.raise_with_dbg_data('No response from device', send_packet) 
 
-            if (rx_adp:=resp[0]) != (tx_adr:=pdu[0]):
-                self.raise_with_dbg_data('Wrong reply address', send_packet, resp) 
-
             if len(resp) < self.MIN_RESP_LEN:
                 self.raise_with_dbg_data('Too short response', send_packet, resp) 
+
+            if (rx_adp:=resp[self.POS_ADR]) != (tx_adr:=pdu[self.POS_ADR]):
+                self.raise_with_dbg_data('Wrong reply address', send_packet, resp) 
+
             
             in_data = []
             
@@ -207,8 +214,8 @@ class MilurMeter:
                 , mconst.GET_ENTALIST_ID_CMD]
 
             if tx_cmd_id in resp_with_len:
-                if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
-                    if (err_code:=resp[2]) in self.RespErrCode.keys():
+                if (resp_code:=resp[self.POS_CODE]) == (0x80 + tx_cmd_id):
+                    if (err_code:=resp[self.POS_ERR]) in self.RespErrCode.keys():
                         txt = self.RespErrCode[err_code]
                     else:
                         txt = ""
@@ -218,7 +225,7 @@ class MilurMeter:
                 if resp_code != tx_cmd_id:
                     self.raise_with_dbg_data('Wrong reply code', send_packet, resp)   
  
-                resp_next = ph.read(next_read_size := resp[3])   
+                resp_next = ph.read(next_read_size := resp[self.POS_LEN])   
 
                 if len(resp_next) != next_read_size:
                     self.raise_with_dbg_data('Respons is not complete', send_packet, resp+resp_next)
@@ -233,18 +240,16 @@ class MilurMeter:
                 crc = calc_crc_16_ibm(resp[0:-2])
                 ba = crc.to_bytes(2, byteorder='little')
         
-                data_start_pos = 4
-
                 if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
                     # TODO: may be not eq?
                     # if resp_code == mconst.GET_COLLECTION_ID_CMD:
                     self.raise_with_dbg_data('Crc mismatch', send_packet, resp+resp)
                 else:
-                    in_data = resp[data_start_pos:len(resp)-2]
+                    in_data = resp[self.POS_DAT:len(resp)-2]
 
             elif tx_cmd_id == mconst.GET_COLLECTION_ID_CMD:
-                if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
-                    if (err_code:=resp[2]) in self.RespErrCode.keys():
+                if (resp_code:=resp[self.POS_CODE]) == (0x80 + tx_cmd_id):
+                    if (err_code:=resp[self.POS_ERR]) in self.RespErrCode.keys():
                         txt = self.RespErrCode[err_code]
                     else:
                         txt = "Response Err"
@@ -255,7 +260,7 @@ class MilurMeter:
                     self.raise_with_dbg_data('Wrong reply code', send_packet, resp)  
                 
                 # WARNING - this diff with common processing is important!
-                next_read_size = resp[3] + 1
+                next_read_size = resp[self.POS_LEN] + 1
                 resp_next = ph.read(next_read_size)   
 
                 if next_read_size < len(resp_next):
@@ -271,19 +276,17 @@ class MilurMeter:
                 crc = calc_crc_16_ibm(resp[0:-2])
                 ba = crc.to_bytes(2, byteorder='little')
         
-                data_start_pos = 4
-
                 if (ba[0] != resp[-2]) or (ba[1] != resp[-1]):
                     #TODO: the overall packet seem good
                     # in_data = resp[data_start_pos:len(resp)-1]
                     pass
                 else:
-                    in_data = resp[data_start_pos:len(resp)-2]
+                    in_data = resp[self.POS_DAT:len(resp)-2]
 
                               
             elif tx_cmd_id == mconst.SETRTC_ID_CMD:
-                if (resp_code:=resp[1]) == (0x80 + tx_cmd_id):
-                    if (err_code:=resp[2]) in self.RespErrCode.keys():
+                if (resp_code:=resp[self.POS_CODE]) == (0x80 + tx_cmd_id):
+                    if (err_code:=resp[self.POS_ERR]) in self.RespErrCode.keys():
                         txt = self.RespErrCode[err_code]
                     else:
                         txt = ""
@@ -604,7 +607,7 @@ class MilurMeter:
         time.sleep(2)   
 
     def rd_pwi_record(self, idx: int):
-        # TODO: move ti list init Fn
+        # TODO: move to list init Fn
         # cmd = mconst.LISTINIT_ID_CMD
         # obj_id = mconst.PWI_ID_DATA
         # send_dat = [self.adr, cmd, obj_id]
@@ -623,8 +626,8 @@ class MilurMeter:
  
         date_txt = ':'.join( date_lst )
 
-        P_sum_in = rest[0:3].hex().removesuffix('F')
-        P_sum_out = rest[4:7].hex().removesuffix('F')
+        P_sum_in = self.decode_PacDec_to_str(rest[0:3], 2)
+        P_sum_out = self.decode_PacDec_to_str(rest[4:7], 2)
         # TODO: according to protocol must be presented in this response
         # Q_sum_in = rest[8:11].hex().removesuffix('F')
         # Q_sum_out = rest[12:15].hex().removesuffix('F')
@@ -633,7 +636,7 @@ class MilurMeter:
         end_fl = rest[8]
 
         # hour_record = [date_txt, str(P_sum_in), str(P_sum_out), str(Q_sum_in), str(Q_sum_out), str(end_fl)]
-        hour_record = [date_txt, str(P_sum_in), str(P_sum_out), str(end_fl)]
+        hour_record = [date_txt, P_sum_in, P_sum_out, str(end_fl)]
         
         return hour_record
             
@@ -735,6 +738,39 @@ class MilurMeter:
         return pf_tbl
 
 
+    def decode_rtc_to_datetime(self, in_dat: bytes) -> datetime:
+        seconds = in_dat[0]
+        minutes = in_dat[1]
+        hours = in_dat[2]
+        dow = ['ERR', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        doweek_idx = in_dat[3]
+        if 0 < doweek_idx < len(dow):
+            doweek = doweek_idx-1
+        else:
+            raise IndexError("emetrs: day-of-week value out of range") 
+        
+        days = in_dat[4]
+        months_lst = ['ERR', 'Jan' , 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        months_idx = in_dat[5]
+
+        if 0 < months_idx < len(months_lst):
+            months = months_idx
+        else:
+            raise IndexError("emetrs: months value out of range")       
+              
+        years = 2000 + in_dat[6]
+
+        dt = datetime(second=seconds, minute=minutes, hour=hours, day=days, month=months, year=years)
+
+        return dt
+    
+    def rd_rtc(self) -> datetime:
+        in_dat = self.run_request([self.adr, mconst.GET_ID_CMD, mconst.RTC_ID_DATA])
+        dt = self.decode_rtc_to_datetime(in_dat)
+        return dt
+
+
+
     def decode_month_name_to_digit(self, month: str):
         months_lst = ['JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         try:
@@ -754,7 +790,7 @@ class MilurMeter:
         days = str(in_dat[4]).zfill(2)
         months_lst = ['ERR', 'Jan' , 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         months_idx = in_dat[5]
-        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        months = str(months_idx).zfill(2) if months_idx < len(months_lst) else 'Err'                
         years = str(2000 + in_dat[6])
         return [seconds, minutes, hours, doweek, days, months, years], in_dat[7:]
 
@@ -765,7 +801,7 @@ class MilurMeter:
         days = str(in_dat[2]).zfill(2)
         months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         months_idx = in_dat[3]
-        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        months = str(months_idx).zfill(2) if months_idx < len(months_lst) else 'Err'                
         years = str(2000 + in_dat[4])
  
         # this is an example of empty output - just for reference
@@ -779,7 +815,7 @@ class MilurMeter:
         days = str(in_dat[3]).zfill(2)
         months_lst = ['ERR', 'JAN' , 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         months_idx = in_dat[4]
-        months = str(months_lst[months_idx]) if months_idx < len(months_lst) else 'Err'                
+        months = str(months_idx).zfill(2) if months_idx < len(months_lst) else 'Err'                
         years = str(2000 + in_dat[5])
         return [seconds, minutes, hours, days, months, years], in_dat[6:]
 

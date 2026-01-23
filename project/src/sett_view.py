@@ -148,27 +148,28 @@ class SettingsFrame(ttk.TTkFrame):
                 try:
                     # for item in g_view_items:
                     #     item.upd_from_dev()
+
+                    format_string = '%S:%M:%H:%a:%d:%b:%Y'
+
                     if self.time_frame.isVisible() and self.isVisible():
                         if self.device:
-                            remote_rtc = self.device.rd_str(ReqId.rtc)
-                            self.rtc_dev.setText(remote_rtc)
 
-                        format_string = '%S:%M:%H:%a:%d:%b:%Y'
+                            # remote_rtc = self.device.rd_str(ReqId.rtc)
+                            remote_rtc = self.device.rd_rtc()
+                            self.rtc_dev.setText(remote_rtc.strftime(format_string))     
 
-                        try:
                             comp_time = datetime.now()
                             self.comp_time.setText(comp_time.strftime(format_string))
 
-                            remote_rtc_dtime = datetime.strptime(remote_rtc, format_string)
-                            time_diff = comp_time - remote_rtc_dtime
+                            # remote_rtc_dtime = datetime.strptime(remote_rtc, format_string)
+                            time_diff = comp_time - remote_rtc
                             self.time_diff.setText(str(time_diff))
-
-                        except Exception as e:
-                            pass
 
                 except serial.SerialException as e:
                     #todo
                     pass
+                except Exception as e:
+                    pass   
 
             time.sleep(0.1)   
 
