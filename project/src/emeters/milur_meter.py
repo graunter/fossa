@@ -622,9 +622,10 @@ class MilurMeter:
 
         send_dat = [self.adr, cmd, obj_id, b0, b1]
         in_dat = self.run_request(send_dat)
-        date_lst, rest = self.decode_time_to_liststr(in_dat)
+        # date_lst, rest = self.decode_time_to_liststr(in_dat)
  
-        date_txt = ':'.join( date_lst )
+        dt, rest = self.decode_time_to_datetime(in_dat)
+        # date_txt = ':'.join( date_lst )
 
         P_sum_in = self.decode_PacDec_to_str(rest[0:3], 2)
         P_sum_out = self.decode_PacDec_to_str(rest[4:7], 2)
@@ -636,7 +637,7 @@ class MilurMeter:
         end_fl = rest[8]
 
         # hour_record = [date_txt, str(P_sum_in), str(P_sum_out), str(Q_sum_in), str(Q_sum_out), str(end_fl)]
-        hour_record = [date_txt, P_sum_in, P_sum_out, str(end_fl)]
+        hour_record = [dt, P_sum_in, P_sum_out, str(end_fl)]
         
         return hour_record
             
@@ -762,8 +763,8 @@ class MilurMeter:
 
         dt = datetime(second=seconds, minute=minutes, hour=hours, day=days, month=months, year=years)
 
-        return dt
-    
+        return dt, in_dat[7:]
+        
     def rd_rtc(self) -> datetime:
         in_dat = self.run_request([self.adr, mconst.GET_ID_CMD, mconst.RTC_ID_DATA])
         dt = self.decode_rtc_to_datetime(in_dat)
@@ -807,6 +808,19 @@ class MilurMeter:
         # this is an example of empty output - just for reference
         #date_txt = ':'.join( [minutes, hours, days, months, years] )
         return [minutes, hours, days, months, years], in_dat[5:]
+
+
+    def decode_time_to_datetime(self, in_dat: bytes) -> datetime:
+        minutes = in_dat[0]
+        hours = in_dat[1]
+        days = in_dat[2]
+        months = in_dat[3]     
+        years = 2000 + in_dat[4]
+
+        dt = datetime(minute=minutes, hour=hours, day=days, month=months, year=years)
+
+        return dt, in_dat[5:]
+    
 
     def decode_timesec_to_liststr(self, in_dat: bytes):
         seconds = str(in_dat[0]).zfill(2)
