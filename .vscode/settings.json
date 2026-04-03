@@ -2,5 +2,6 @@
     "cSpell.words": [
         "emeters",
         "milur"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:pyenv"
 }

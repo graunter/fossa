@@ -155,7 +155,7 @@ class SettingsFrame(ttk.TTkFrame):
                         if self.device:
 
                             # remote_rtc = self.device.rd_str(ReqId.rtc)
-                            remote_rtc = self.device.rd_rtc()
+                            remote_rtc, _ = self.device.rd_rtc()
                             self.rtc_dev.setText(remote_rtc.strftime(format_string))     
 
                             comp_time = datetime.now()

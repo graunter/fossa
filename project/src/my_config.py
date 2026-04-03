@@ -83,9 +83,10 @@ class MyConfig(metaclass=MySingletone):
 
     def extract_config(self, CfgData: list):
        
-        self.extract_connection(CfgData)
-        self.extract_misc_conf(CfgData)  
-        self.extract_milurs(CfgData)      
+        # self.extract_connection(CfgData)
+        # self.extract_misc_conf(CfgData)  
+        # self.extract_milurs(CfgData)      
+        pass
 
     def extract_milurs(self, CfgData):
         MilurCfg = CfgData.get("milur", {})

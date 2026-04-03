@@ -910,7 +910,7 @@ class MilurMeter:
     trans_str_tbl = { 
           ReqId.model: Msg("Model name", 'model', '',               DType.StrData, mconst.MODEL_ID_DATA, 14)  
         , ReqId.fw_ver: Msg("Firmware version", 'fw-version', '',   DType.StrData, mconst.FW_ID_DATA, 4)
-        , ReqId.serial_num: Msg("Serial number", 'sn',              DType.StrData, mconst.SN_ID_DATA, 15)
+        , ReqId.serial_num: Msg("Serial number", 'sn', '',          DType.StrData, mconst.SN_ID_DATA, 15)
         , ReqId.prod_date: Msg("Production date", 'manufactured', "ss.mm.hh.dow.dd.mm.yyyy", DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
         , ReqId.cur_rate: Msg("Rate", 'tarrif', '',                 DType.DigitData, mconst.RATE_ID_DATA, 1)
         , ReqId.freq: Msg("Frequency", "Frequency", "Hz",           DType.UDigitData, mconst.FREQ_ID_DATA, 2, 1000)

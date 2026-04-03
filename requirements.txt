@@ -1,0 +1,9 @@
+
+paho-mqtt
+pyinstaller
+pyserial
+PyYAML
+setuptools
+pipreqs
+pip-tools
+pyTermTk

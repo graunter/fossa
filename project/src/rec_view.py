@@ -233,25 +233,37 @@ class RecordsFrame(ttk.TTkFrame):
 
                     total_cnt = min(total_cnt, total_tbl_cnt)
 
-            cur_idx += 1
-            rd_idx = cur_idx
-            pwi_tbl = []
-            for i in range(total_cnt):
-                pwi_rec = self.device.rd_pwi_record(rd_idx)
-                pwi_tbl.append(pwi_rec)
-                rd_idx -=1
-                if rd_idx < 0:
-                    rd_idx = 5903
-
-            tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
-            self.tax_table.setModel(tax_tableModel) 
-            self.tax_table.resizeRowsToContents()
-            self.tax_table.resizeColumnsToContents()
-
         except Exception as e:
-            err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
+            err_box = ttk.TTkMessageBox( title="Can't read total number of records",  text=f'{str(e)}' )
             ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
             return
+
+
+        cur_idx += 1
+        rd_idx = cur_idx
+        pwi_tbl = []
+        for i in range(total_cnt):
+            try:
+                pwi_rec = self.device.rd_pwi_record(rd_idx)
+            except mtr.ProtocolException as e:
+                # seccond attemption
+                try:
+                    pwi_rec = self.device.rd_pwi_record(rd_idx)
+                except mtr.ProtocolException as e:
+                    err_box = ttk.TTkMessageBox( title=f"Can't read all records - just {str(i)}",  text=f'{str(e)}' )
+                    ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                    return                    
+
+            pwi_tbl.append(pwi_rec)
+            rd_idx -=1
+            if rd_idx < 0:
+                rd_idx = 5903
+
+        tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
+        self.tax_table.setModel(tax_tableModel) 
+        self.tax_table.resizeRowsToContents()
+        self.tax_table.resizeColumnsToContents()
+
 
 
     def on_read_hh_cnt_btn(self):

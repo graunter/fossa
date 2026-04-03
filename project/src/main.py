@@ -43,36 +43,37 @@ class Fossa:
 
     # TODO: restore of all pins state from persistent storage
     def on_start(self):
-        port_name = self.cfg.milur_port
-        try:
-            self.ser = serial.Serial(                
-                port=str(port_name)
-                , baudrate=9600
-                , bytesize=8
-                , parity='N'
-                , stopbits=1
-                , timeout=0.1
-                , rtscts=False
-                , dsrdtr=False
-            )
-            # ser.open()
-            self.sem = Semaphore()
-        except Exception as e:
-            logging.error(f'Cant open port {port_name} - exited: ' + str(e))
-            if self.client: self.client.disconnect()
-            exit(1)
+        # port_name = self.cfg.milur_port
+        # try:
+        #     self.ser = serial.Serial(                
+        #         port=str(port_name)
+        #         , baudrate=9600
+        #         , bytesize=8
+        #         , parity='N'
+        #         , stopbits=1
+        #         , timeout=0.1
+        #         , rtscts=False
+        #         , dsrdtr=False
+        #     )
+        #     # ser.open()
+        #     self.sem = Semaphore()
+        # except Exception as e:
+        #     logging.error(f'Cant open port {port_name} - exited: ' + str(e))
+        #     if self.client: self.client.disconnect()
+        #     exit(1)
 
 
-        self.pwr_mtr_lst = []
-        for adr in self.cfg.adr_lst:
-            try:
-                cnt = MilurMeter(adr, self.ser, self.sem)  
-                logging.info(f'Connected to adr {adr}')
-                cnt.login(ACCESS_LVL_USER, ACCESS_PWD_USER)
-                self.pwr_mtr_lst.append(cnt)
-            except Exception as e:
-                logging.error(f'Cant connect to adr {adr} - scipped: ' + str(e))
+        # self.pwr_mtr_lst = []
+        # for adr in self.cfg.adr_lst:
+        #     try:
+        #         cnt = MilurMeter(adr, self.ser, self.sem)  
+        #         logging.info(f'Connected to adr {adr}')
+        #         cnt.login(ACCESS_LVL_USER, ACCESS_PWD_USER)
+        #         self.pwr_mtr_lst.append(cnt)
+        #     except Exception as e:
+        #         logging.error(f'Cant connect to adr {adr} - scipped: ' + str(e))
          
+        pass
         #ver_val, ver_str = cnt.read_version()
         #logging.debug(f'Counter version: {ver_str}, row value: {ver_val}')
 
@@ -89,22 +90,22 @@ class Fossa:
         self.client = client
         logging.debug("Connected with result code "+str(reason_code))
 
-        self.status_timer_begin = timer()
-        #if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
-        self.pause_blocks_fl = False
-        if not self.pull_blocks_thrd:
-            self.pull_blocks_thrd = Thread(target=self.on_blocks_pull)
-            self.pull_blocks_thrd.daemon = True
-            self.pull_blocks_thrd.start()    
+        # self.status_timer_begin = timer()
+        # #if self.cfg.blocks_cfg["repetition_time_sec"] > 0:
+        # self.pause_blocks_fl = False
+        # if not self.pull_blocks_thrd:
+        #     self.pull_blocks_thrd = Thread(target=self.on_blocks_pull)
+        #     self.pull_blocks_thrd.daemon = True
+        #     self.pull_blocks_thrd.start()    
 
 
     def on_disconnect(self):
         logging.debug('Disconected from client') 
-        self.pause_pins_fl = True
+        # self.pause_pins_fl = True
 
-        for i, (key, CompLst) in enumerate(self.pins.items()):
-            for OneComp in CompLst:
-                OneComp.on_disconnect()
+        # for i, (key, CompLst) in enumerate(self.pins.items()):
+        #     for OneComp in CompLst:
+        #         OneComp.on_disconnect()
 
     def pull_action(self):
 
