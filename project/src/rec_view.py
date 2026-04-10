@@ -21,7 +21,7 @@ class RecordsFrame(ttk.TTkFrame):
 
         super().__init__(name="name", **kwargs)
 
-        self.head_ENTARecord_tbl = ['Time', 
+        self.head_ENTARecord_tbl = ['N#', 'Time', 
             'Sum in Active PWR','Sum in A PWR 1','Sum in A PWR 2','Sum in A PWR 3','Sum in A PWR 4','Sum in A PWR 5','Sum in A PWR 6','Sum in A PWR 7','Sum in A PWR 8',
             'Sum out Active PWR', 'Sum out A PWR 1','Sum out A PWR 2','Sum out A PWR 3','Sum out A PWR 4','Sum out A PWR 5','Sum out A PWR 6','Sum out A PWR 7','Sum out A PWR 8',
             'Sum in Re PWR','Sum in R PWR 1','Sum in R PWR 2','Sum in R PWR 3','Sum in R PWR 4','Sum in R PWR 5','Sum in R PWR 6','Sum in R PWR 7','Sum in R PWR 8',
@@ -47,7 +47,7 @@ class RecordsFrame(ttk.TTkFrame):
         #---<
 
 
-        self.head_tax_tbl = ['Time', 'Active in Pwr', 'Active out Pwr', 'Done'] 
+        self.head_tax_tbl = ['Rec#', 'Time', 'Active in Pwr', 'Active out Pwr', 'Done'] 
         no_tax_tbl = [ ['-----------------------' for _ in range( len(self.head_tax_tbl) ) ] ]
 
         tax_tableModel = ttk.TTkTableModelList(data=no_tax_tbl, header=self.head_tax_tbl)        
@@ -130,19 +130,22 @@ class RecordsFrame(ttk.TTkFrame):
 
     def on_read_d_tbl_btn(self):
         try:
-
             cur_idx = self.device.rd_d_tax_current()
-            total_cnt = self.device.rd_d_tax_total()
+            total_tbl_cnt = self.device.rd_d_tax_total()
         
-            #cur_idx += 1
-            rd_idx = cur_idx
+            MAX_TOTAL_RECORS = 123
             pwi_tbl = []
-            for i in range(total_cnt):
-                pwi_rec = self.device.rd_d_record(rd_idx)
-                pwi_tbl.append(pwi_rec)
-                rd_idx -=1
-                if rd_idx < 0:
-                    rd_idx = 122
+
+            if total_tbl_cnt != 0:
+                    rd_idx = cur_idx
+
+                    for i in range(total_tbl_cnt):
+                        pwi_rec = self.device.rd_d_record(rd_idx)
+                        pwi_rec.insert(0, rd_idx)
+                        pwi_tbl.append(pwi_rec)
+                        rd_idx -=1
+                        if rd_idx < 0:
+                            rd_idx = MAX_TOTAL_RECORS-1
 
             tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_d_tax_tbl) 
             self.tax_d_table.setModel(tax_tableModel) 
@@ -153,6 +156,8 @@ class RecordsFrame(ttk.TTkFrame):
             err_box = ttk.TTkMessageBox( title="Err",  text=f'{str(e)}' )
             ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
             return        
+
+
 
     def on_read_d_cnt_btn(self):
         try:
@@ -217,6 +222,7 @@ class RecordsFrame(ttk.TTkFrame):
 
         try:
             cur_idx = self.device.rd_total_tax_current()
+            total_tbl_cnt = self.device.rd_total_tax_count()
 
             match self.mlst.currentIndex():
                 case 0:  # Last
@@ -226,10 +232,9 @@ class RecordsFrame(ttk.TTkFrame):
                     # self.tax_table.setModel(tax_tableModel)
                     # return
                 case 4:
-                    total_cnt = self.device.rd_total_tax_count()                
+                    total_cnt = total_tbl_cnt               
                 case 1 | 2 | 3:
                     total_cnt = 10 ** self.mlst.currentIndex()
-                    total_tbl_cnt = self.device.rd_total_tax_count()
 
                     total_cnt = min(total_cnt, total_tbl_cnt)
 
@@ -237,27 +242,33 @@ class RecordsFrame(ttk.TTkFrame):
             err_box = ttk.TTkMessageBox( title="Can't read total number of records",  text=f'{str(e)}' )
             ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
             return
+        
+        MAX_TOTAL_RECORS = 5904
 
-
-        cur_idx += 1
-        rd_idx = cur_idx
         pwi_tbl = []
-        for i in range(total_cnt):
-            try:
-                pwi_rec = self.device.rd_pwi_record(rd_idx)
-            except mtr.ProtocolException as e:
-                # seccond attemption
-                try:
-                    pwi_rec = self.device.rd_pwi_record(rd_idx)
-                except mtr.ProtocolException as e:
-                    err_box = ttk.TTkMessageBox( title=f"Can't read all records - just {str(i)}",  text=f'{str(e)}' )
-                    ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
-                    return                    
+        if total_tbl_cnt != 0:
+                if total_tbl_cnt == MAX_TOTAL_RECORS:
+                    rd_idx = MAX_TOTAL_RECORS - 1
+                else:   
+                    rd_idx = cur_idx
 
-            pwi_tbl.append(pwi_rec)
-            rd_idx -=1
-            if rd_idx < 0:
-                rd_idx = 5903
+                for i in range(total_cnt):
+                    try:
+                        pwi_rec = self.device.rd_pwi_record(rd_idx)
+                        pwi_rec.insert(0, rd_idx)
+                    except mtr.ProtocolException as e:
+                        # seccond attemption
+                        try:
+                            pwi_rec = self.device.rd_pwi_record(rd_idx)
+                        except mtr.ProtocolException as e:
+                            err_box = ttk.TTkMessageBox( title=f"Can't read all records - just {str(i)}",  text=f'{str(e)}' )
+                            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                            return                    
+
+                    pwi_tbl.append(pwi_rec)
+                    rd_idx -=1
+                    if rd_idx < 0:
+                        rd_idx = MAX_TOTAL_RECORS-1
 
         tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
         self.tax_table.setModel(tax_tableModel) 
