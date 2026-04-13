@@ -914,7 +914,7 @@ class MilurMeter:
         , ReqId.prod_date: Msg("Production date", 'manufactured', "ss.mm.hh.dow.dd.mm.yyyy", DType.RtcData, mconst.PROD_DATE_ID_DATA, 7)
         , ReqId.cur_rate: Msg("Rate", 'tarrif', '',                 DType.DigitData, mconst.RATE_ID_DATA, 1)
         , ReqId.freq: Msg("Frequency", "Frequency", "Hz",           DType.UDigitData, mconst.FREQ_ID_DATA, 2, 1000)
-        , ReqId.v_scale: Msg("Voltage scale", "k_voltage",          DType.VScaleData, mconst.SCALE_ID_DATA, 4)
+        , ReqId.v_scale: Msg("Voltage scale", "k_voltage", '',      DType.VScaleData, mconst.SCALE_ID_DATA, 4)
         , ReqId.i_scale: Msg("Current scale", "k-current", '',      DType.IScaleDate, mconst.SCALE_ID_DATA, 4)                        
         
         , ReqId.rtc: Msg("RTC", "time", "ss.mm.hh.dow.dd.mm.yyyy",  DType.RtcData, mconst.RTC_ID_DATA, 7)
