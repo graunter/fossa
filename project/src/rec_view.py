@@ -56,13 +56,63 @@ class RecordsFrame(ttk.TTkFrame):
         self.tax_table.resizeRowsToContents()
         self.tax_table.resizeColumnsToContents()
 
+        self.half_hours_frame = ttk.TTkFrame(border=True, visible=False)
 
+        self.half_hours_frame.setLayout(ttk.TTkVBoxLayout())
+        self.half_hours_frame.layout().addWidget(btns_hh_frame)        
+        self.half_hours_frame.layout().addWidget(self.tax_table) 
+
+
+
+        self.head_tax_tbl = ['Rec#', 'Time', 'Active in Pwr', 'Active out Pwr', 'Done'] 
+        no_tax_tbl = [ ['-----------------------' for _ in range( len(self.head_tax_tbl) ) ] ]
+
+        tax_tableModel = ttk.TTkTableModelList(data=no_tax_tbl, header=self.head_tax_tbl)        
+
+        self.tax_table = ttk.TTkTable(tableModel=tax_tableModel)
+        self.tax_table.resizeRowsToContents()
+        self.tax_table.resizeColumnsToContents()
 
         self.half_hours_frame = ttk.TTkFrame(border=True, visible=False)
 
         self.half_hours_frame.setLayout(ttk.TTkVBoxLayout())
         self.half_hours_frame.layout().addWidget(btns_hh_frame)        
         self.half_hours_frame.layout().addWidget(self.tax_table) 
+
+
+
+        #--->
+        self.get_hh8_rec_btn = ttk.TTkButton(text='Read total counts', border=True, maxHeight = 5 )
+        self.get_hh8_rec_btn.clicked.connect(self.on_read_hh_cnt_btn)
+
+        btns_hh8_frame = ttk.TTkFrame()
+        btns_hh8_frame.setLayout( ttk.TTkHBoxLayout() )
+
+        len_8_lst = ['Last 8', '64', '512', 'All']
+        self.mlst8 = ttk.TTkComboBox(list=len_8_lst, text="Month", index=0)
+
+        self.get_hh8_table_btn = ttk.TTkButton(text='Read records', border=True, maxHeight = 5 )
+        self.get_hh8_table_btn.clicked.connect(self.on_read_hh8_tbl_btn)        
+
+        btns_hh8_frame.layout().addWidget(self.get_hh8_rec_btn)
+        btns_hh8_frame.layout().addWidget(self.mlst8)
+        btns_hh8_frame.layout().addWidget(self.get_hh8_table_btn)
+        #---<
+
+
+
+        tax_tableModel = ttk.TTkTableModelList(data=no_tax_tbl, header=self.head_tax_tbl)        
+
+        self.tax8_table = ttk.TTkTable(tableModel=tax_tableModel)
+        self.tax8_table.resizeRowsToContents()
+        self.tax8_table.resizeColumnsToContents()
+
+        self.half_hours8_frame = ttk.TTkFrame(border=True, visible=False)
+
+        self.half_hours8_frame.setLayout(ttk.TTkVBoxLayout())
+        self.half_hours8_frame.layout().addWidget(btns_hh8_frame)        
+        self.half_hours8_frame.layout().addWidget(self.tax8_table) 
+
 
 
 
@@ -121,8 +171,10 @@ class RecordsFrame(ttk.TTkFrame):
 
         tbl_tab = ttk.TTkTabWidget(border=False, visible=True)
         tbl_tab.addTab(self.half_hours_frame, " Hours ")
+        tbl_tab.addTab(self.half_hours8_frame, " Hours8 ")
         tbl_tab.addTab(self.days_frame, " Days ")
         tbl_tab.addTab(self.months_frame, " Months ")  
+
 
 
         self.setLayout(ttk.TTkHBoxLayout())
@@ -274,6 +326,71 @@ class RecordsFrame(ttk.TTkFrame):
         self.tax_table.setModel(tax_tableModel) 
         self.tax_table.resizeRowsToContents()
         self.tax_table.resizeColumnsToContents()
+
+
+
+    def on_read_hh8_tbl_btn(self):
+
+        try:
+            cur_idx = self.device.rd_total_tax_current()
+            total_tbl_cnt = self.device.rd_total_tax_count()
+
+            match self.mlst8.currentIndex():
+                case 3:
+                    total_cnt = total_tbl_cnt               
+                case _:
+                    total_cnt = 8 ** self.mlst8.currentIndex()
+                    total_cnt = min(total_cnt, total_tbl_cnt)
+
+        except Exception as e:
+            err_box = ttk.TTkMessageBox( title="Can't read total number of records",  text=f'{str(e)}' )
+            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+            return
+        
+        MAX_TOTAL_RECORS = 5904
+        IDX_STEP = 8
+
+        pwi_tbl = []
+        if total_tbl_cnt != 0:
+                if total_tbl_cnt == MAX_TOTAL_RECORS:
+                    rd_idx = MAX_TOTAL_RECORS - 1
+                else:   
+                    rd_idx = cur_idx
+
+                for i in range(0, total_cnt, IDX_STEP):
+                    try:
+                        pwi_recs = self.device.rd_pwi8_record(rd_idx)
+                        for one_rec in pwi_recs:
+                            one_rec.insert(0, rd_idx)
+                            rd_idx += 1
+                    except mtr.ProtocolException as e:
+                        # seccond attemption
+                        try:
+                            pwi_recs = self.device.rd_pwi8_record(rd_idx)
+                        except mtr.ProtocolException as e:
+                            err_box = ttk.TTkMessageBox( title=f"Can't read all records - just {str(i)}",  text=f'{str(e)}' )
+                            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                            return    
+
+                        except Exception as e:
+                            err_box = ttk.TTkMessageBox( title=f"Can't read all records - second try - just {str(i)}",  text=f'{str(e)}' )
+                            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                            return     
+
+                    except Exception as e:
+                        err_box = ttk.TTkMessageBox( title=f"Can't read all records - general error - just {str(i)}",  text=f'{str(e)}' )
+                        ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                        return               
+
+                    pwi_tbl.extend(pwi_recs)
+                    rd_idx -=8
+                    if rd_idx < 0:
+                        rd_idx = MAX_TOTAL_RECORS-1
+
+        tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
+        self.tax8_table.setModel(tax_tableModel) 
+        self.tax8_table.resizeRowsToContents()
+        self.tax8_table.resizeColumnsToContents()
 
 
 

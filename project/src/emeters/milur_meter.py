@@ -642,6 +642,24 @@ class MilurMeter:
         return hour_record
             
 
+
+    def rd_pwi8_record(self, idx: int):
+
+        cmd = mconst.GET_COLLECTION_ID_CMD
+        obj_id = 3
+        send_dat = [self.adr, cmd, obj_id, 1, 0]        
+        in_dat = self.run_request(send_dat)
+
+        dlen = int((8+8+8+8+8+32+32+8)/8)
+        records = []
+        dat = in_dat
+        for cnt in range(8):
+            records.append( self.decode_pwi(dat[cnt*dlen:(cnt+1)*dlen]) )
+
+        return records
+            
+
+
     def rd_total_tax_count(self) ->int:
         cmd = mconst.GETLISTNE_ID_CMD
         obj_id = mconst.PWI_ID_DATA
@@ -845,7 +863,26 @@ class MilurMeter:
             in_real = in_digit
         
         txt = str(in_real.lstrip('0'))    
-        return txt       
+        return txt     
+
+    def decode_pwi(self, in_dat: bytes):
+        dt, rest = self.decode_time_to_datetime(in_dat)
+        # date_txt = ':'.join( date_lst )
+
+        P_sum_in = self.decode_PacDec_to_str(rest[0:3], 2)
+        P_sum_out = self.decode_PacDec_to_str(rest[4:7], 2)
+        # TODO: according to protocol must be presented in this response
+        # Q_sum_in = rest[8:11].hex().removesuffix('F')
+        # Q_sum_out = rest[12:15].hex().removesuffix('F')
+
+        # end_fl = rest[16]
+        end_fl = rest[8]
+
+        # hour_record = [date_txt, str(P_sum_in), str(P_sum_out), str(Q_sum_in), str(Q_sum_out), str(end_fl)]
+        hour_record = [dt, P_sum_in, P_sum_out, str(end_fl)]
+        
+        return hour_record   
+
 
     def decode_word_to_str(self, in_dat: bytes, scale = 1) -> {str, bytes}:
         dat = in_dat[0:4]
