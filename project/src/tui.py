@@ -169,6 +169,10 @@ def on_mb_open_btn():
         access_lvl = ACCESS_LVL_USER
         pass_string = pass1.text()
 
+
+        if r1.checkState() is ttk.TTkK.Checked:
+            access_lvl = ACCESS_LVL_USER
+            pass_string = pass1.text()
         if r2.checkState() is ttk.TTkK.Checked:
             access_lvl = ACCESS_ADM_USER
             pass_string = pass2.text()
@@ -178,8 +182,10 @@ def on_mb_open_btn():
 
         pass_for_dev = [int(h, 16) for h in pass_string._text.split()]
 
-        if ACCESS_LVL_USER != access_lvl:
-            adapter.login(access_lvl, pass_for_dev)
+        # if ACCESS_LVL_USER != access_lvl:
+            # adapter.login(access_lvl, pass_for_dev)
+
+        adapter.login(access_lvl, pass_for_dev)
 
         g_cnt_lst.append(adapter)
 

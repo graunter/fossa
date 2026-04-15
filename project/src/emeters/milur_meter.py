@@ -59,13 +59,11 @@ class MilurMeter:
         self.adr = adr
         self.err_cnt = 0
 
-
     def link(self, *args):
         self.ph = DummyPortHandler(*args)
 
     def disconnect(self):
         self.ph = None     
-
 
     # TODO: this check is not protected by semaphore
     @staticmethod
@@ -113,11 +111,11 @@ class MilurMeter:
             ph.write(send_packet)
             #TODO: read len should be calculated
             # adr id_cmd crc1 crc2
-            resp = ph.read(10)
+            resp = ph.read(5)
             
-            if len(resp) != 4:
-            #     raise ProtocolException("Too short response for login")
-                pass
+            if resp[1] != mconst.AOPEN_ID_CMD and resp[2] != 1:
+                raise ProtocolException("Can't open session")
+                
             
 
     def logout(self) -> bool:
@@ -647,6 +645,7 @@ class MilurMeter:
 
         cmd = mconst.GET_COLLECTION_ID_CMD
         obj_id = 3
+        # todo: last constants in request must be change to current index
         send_dat = [self.adr, cmd, obj_id, 1, 0]        
         in_dat = self.run_request(send_dat)
 
