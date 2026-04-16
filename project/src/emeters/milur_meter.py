@@ -862,6 +862,9 @@ class MilurMeter:
             in_real = in_digit
         
         txt = str(in_real.lstrip('0'))    
+        if txt[0] == '.':
+            txt = "0" + txt
+            
         return txt     
 
     def decode_pwi(self, in_dat: bytes):
