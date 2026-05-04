@@ -393,9 +393,14 @@ def build_main_screen(root=None):
     mb_scan_line.setLayout(ttk.TTkHBoxLayout())
     mb_scan_line.layout().addWidget(ttk.TTkSpacer())
     mb_scan_line.layout().addWidget(ttk.TTkLabel(text="System", maxWidth = 30))
-    g_mb_port_names = ttk.TTkList( items=serial_ports(), border=True )
-    g_mb_port_names.textClicked.connect(lambda s: g_mb_port_name.setText(s))
-    mb_scan_line.layout().addWidget( g_mb_port_names )
+    raw_port_names = serial_ports()
+    mb_port_names = ttk.TTkList( items=raw_port_names, border=True )
+    mb_port_names.textClicked.connect(lambda s: g_mb_port_name.setText(s))
+
+    if 1 == len(raw_port_names):
+        g_mb_port_name.setText(raw_port_names[0])
+
+    mb_scan_line.layout().addWidget( mb_port_names )
     mb_scan_line.layout().addWidget(ttk.TTkButton(border=True, text="ReScan..", maxHeight = 5 ))
     mb_scan_line.addWidget(ttk.TTkSpacer())
 
