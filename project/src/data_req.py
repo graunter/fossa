@@ -76,6 +76,46 @@ class DataSRequest(DataRequest):
             self.data_item.setText(txt)
 
 
+class DataS2Request(DataRequest):
+   
+    def __init__(self, *
+            , msg: mtr.MilurMeter.Msg
+            , **kwargs) -> None:     
+        
+        super().__init__( **kwargs )
+
+        this_msg = mtr.MilurMeter.trans_str_tbl[msg]
+ 
+        self.label_txt = this_msg.label
+        self.data_txt = "NA"
+        self.unit_txt = this_msg.unite
+        self.req = lambda dev: dev.rd_str(msg)
+        
+        line_cnt = 0
+
+
+        self.layout().addWidget(ttk.TTkLabel(text=self.label_txt, size=(self.def_name_size,1), maxWidth = self.def_name_w), line_cnt, self.name_column)
+        self.data_item = ttk.TTkLineEdit(text=self.data_txt, size=(self.def_data_size,1), maxWidth = self.def_data_w)
+        self.data_item.setEnabled(False)
+        self.layout().addWidget(self.data_item, line_cnt, self.data_column)
+        self.layout().addWidget(ttk.TTkLabel(text=self.unit_txt, size=(self.def_unit_size,1), maxWidth = self.def_unit_w), line_cnt, self.units_column)    
+        self.layout().addWidget(ttk.TTkSpacer())
+
+
+    def upd_from_dev(self):
+        if not self.device:
+            self.data_item.setText("no device")
+            return
+
+        if self.req:
+            try:
+                txt = self.req(self.device)
+            except Exception as e:
+                txt = f'{str(e)}'
+    
+            self.data_item.setText(txt)
+
+
 class DataQRequest(DataRequest):
    
     def __init__(self, *

@@ -18,7 +18,8 @@ class RealFrame(ttk.TTkFrame):
         # g_view_frame = ttk.TTkFrame(border=True, title="View", visible=False)
 
 
-        #---> Common
+        #---> Measurements
+            #---> Common
         line_cnt = 0
         name_column = 0
         data_column = 1
@@ -57,20 +58,6 @@ class RealFrame(ttk.TTkFrame):
             # , req.DataSRequest(label="Full power (S L2)", unit="VA", req=lambda dev: dev.rd_str(ReqId.PwrB))
             # , req.DataSRequest(label="Full power (S L3)", unit="VA", req=lambda dev: dev.rd_str(ReqId.PwrC)) 
 
-
-
-            , req.DataSRequest(label="Active in energy sum (AP)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e))  
-            , req.DataSRequest(label="Active in energy (AP t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_1))  
-            # , req.DataSRequest(label="Active in energy (AP t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_2))  
-            # , req.DataSRequest(label="Active in energy (AP t3)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_3))  
-            # , req.DataSRequest(label="Active in energy (AP t4)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.Active_imp_e_4))                                      
-
-            , req.DataSRequest(label="ReActive in energy sum (AR)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e))  
-            , req.DataSRequest(label="ReActive in energy (AR t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_1))  
-            # , req.DataSRequest(label="ReActive in energy (AR t1)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_2))  
-            # , req.DataSRequest(label="ReActive in energy (AR t3)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_3))  
-            # , req.DataSRequest(label="ReActive in energy (AR t4)", unit="kW*h", req=lambda dev: dev.rd_str(ReqId.ReAct_imp_e_4))  
-
             , req.DataQRequest(
                 score="Power Factor", 
                 label=["PF", 'PF L1', 'PF L2', 'PF L3'], 
@@ -81,13 +68,63 @@ class RealFrame(ttk.TTkFrame):
         ]
 
         self.line_frame = ttk.TTkFrame(border=True, visible=False)
+        # self.line_frame = ttk.TTkFrame(border=True, visible=True)
         self.line_frame.setLayout(ttk.TTkVBoxLayout())
 
-        for item in self.g_view_items:
-            self.line_frame.layout().addWidget(item)
+        # scroll_area = ttk.TTkScrollArea(parent=self.line_frame)
+        content_frame = ttk.TTkFrame(layout=ttk.TTkVBoxLayout())#, parent=scroll_area.viewport())
+        # test_widget = ttk.TTkTestWidget(pos=(0,0)   , size=(50,25), parent=scroll_area.viewport(), border=True)
+        # content_frame.layout().addWidget(test_widget)
 
-        self.line_frame.layout().addWidget(ttk.TTkSpacer())
-        #---< Common
+        for item in self.g_view_items:
+            content_frame.layout().addWidget(item)
+
+        content_frame.layout().addWidget(ttk.TTkSpacer())
+
+        # scroll_area.addWidget(content_frame)
+        # self.line_frame.addWidget(scroll_area)
+        self.line_frame.addWidget(content_frame)
+
+            #---< Common
+
+            #--->Energy
+
+        self.e_view_items = [
+            req.DataS2Request(msg=ReqId.Active_imp_e) 
+            , req.DataS2Request(msg=ReqId.Active_imp_e_1) 
+            , req.DataS2Request(msg=ReqId.Active_imp_e_2) 
+            , req.DataS2Request(msg=ReqId.Active_imp_e_3) 
+            , req.DataS2Request(msg=ReqId.Active_imp_e_4)   
+
+            , req.DataS2Request(msg=ReqId.ReAct_imp_e) 
+            , req.DataS2Request(msg=ReqId.ReAct_imp_e_1) 
+            , req.DataS2Request(msg=ReqId.ReAct_imp_e_2) 
+            , req.DataS2Request(msg=ReqId.ReAct_imp_e_3) 
+            , req.DataS2Request(msg=ReqId.ReAct_imp_e_4)            
+
+            , req.DataS2Request(msg=ReqId.Active_exp_e)
+            , req.DataS2Request(msg=ReqId.Active_exp_e_1)
+            , req.DataS2Request(msg=ReqId.Active_exp_e_2)
+            , req.DataS2Request(msg=ReqId.Active_exp_e_3)
+            , req.DataS2Request(msg=ReqId.Active_exp_e_4)                           
+
+            , req.DataS2Request(msg=ReqId.ReAct_exp_e)
+            , req.DataS2Request(msg=ReqId.ReAct_exp_e_1)
+            , req.DataS2Request(msg=ReqId.ReAct_exp_e_2)
+            , req.DataS2Request(msg=ReqId.ReAct_exp_e_3)
+            , req.DataS2Request(msg=ReqId.ReAct_exp_e_4)
+        ]
+
+        self.energy_frame = ttk.TTkFrame(border=True, visible=False)
+        self.energy_frame.setLayout(ttk.TTkVBoxLayout())
+        self.energy_frame.layout().addWidgets(self.e_view_items)
+            #---<Energy
+
+        self.common_tab = ttk.TTkTabWidget(border=False, visible=True)
+        self.common_tab.addTab(self.line_frame, " Common ")
+        self.common_tab.addTab(self.energy_frame, " Energy ")
+
+        #---< Measurements
 
         #---> Groups
 
@@ -189,7 +226,7 @@ class RealFrame(ttk.TTkFrame):
         #---< Groups     
 
         tbl_tab = ttk.TTkTabWidget(border=False, visible=True)
-        tbl_tab.addTab(self.line_frame, " Common ")
+        tbl_tab.addTab(self.common_tab, " Measurements ")
         tbl_tab.addTab(self.group_frame, " Groups ")
         # tbl_tab.addTab(self.months_frame, " Months ")  
 
@@ -204,6 +241,12 @@ class RealFrame(ttk.TTkFrame):
         for item in self.g_view_items:
             item.set_device(dev)
             item.upd_from_dev()
+
+
+        for item in self.e_view_items:
+            item.set_device(dev)
+            # item.upd_from_dev()
+        
 
     def upd_group(self):
         try:
@@ -244,6 +287,9 @@ class RealFrame(ttk.TTkFrame):
         # self.on_read_hh_cnt_btn()        
         for item in self.g_view_items:
             item.upd_from_dev()
+        
+        for item in self.e_view_items:
+            item.upd_from_dev()        
 
         self.upd_group()
 
