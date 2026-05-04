@@ -298,6 +298,12 @@ class RecordsFrame(ttk.TTkFrame):
         MAX_TOTAL_RECORS = 5904
 
         pwi_tbl = []
+        def fill_table():
+            tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
+            self.tax_table.setModel(tax_tableModel) 
+            # self.tax_table.resizeRowsToContents()
+            self.tax_table.resizeColumnsToContents()
+
         if total_tbl_cnt != 0:
                 if total_tbl_cnt == MAX_TOTAL_RECORS:
                     rd_idx = MAX_TOTAL_RECORS - 1
@@ -313,19 +319,26 @@ class RecordsFrame(ttk.TTkFrame):
                         try:
                             pwi_rec = self.device.rd_pwi_record(rd_idx)
                         except mtr.ProtocolException as e:
-                            err_box = ttk.TTkMessageBox( title=f"Can't read all records - just {str(i)}",  text=f'{str(e)}' )
+                            err_box = ttk.TTkMessageBox( title=f"Can't read all records - protocol err- just {str(i)}",  text=f'{str(e)}' )
                             ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
-                            return                    
+                            fill_table()
+                            return   
+                        except Exception as e:
+                            err_box = ttk.TTkMessageBox( title=f"Can't read all records - general err- just {str(i)}",  text=f'{str(e)}' )
+                            ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+                            fill_table()
+                            return                                         
 
                     pwi_tbl.append(pwi_rec)
                     rd_idx -=1
                     if rd_idx < 0:
                         rd_idx = MAX_TOTAL_RECORS-1
 
-        tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
-        self.tax_table.setModel(tax_tableModel) 
-        self.tax_table.resizeRowsToContents()
-        self.tax_table.resizeColumnsToContents()
+        # tax_tableModel = ttk.TTkTableModelList(data=pwi_tbl, header=self.head_tax_tbl) 
+        # self.tax_table.setModel(tax_tableModel) 
+        # self.tax_table.resizeRowsToContents()
+        # self.tax_table.resizeColumnsToContents()
+        fill_table()
 
 
 

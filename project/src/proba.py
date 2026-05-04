@@ -15,8 +15,8 @@ def modbusCrc(msg:str) -> int:
                 crc >>= 1
     return crc
 
-#dev_port = '/dev/ttyUSB0'
-dev_port = '/dev/ttyACM0'
+dev_port = '/dev/ttyUSB0'
+# dev_port = '/dev/ttyACM0'
 #dev_port = 'COM15'
 
 

@@ -976,7 +976,7 @@ class MilurMeter:
         , ReqId.ActPwrA: Msg("Active power", "P L1", "W",           DType.DigitData, mconst.APA_ID_DATA, 4, 1000)     
         , ReqId.ActPwrB: Msg("B Active power", "P L2", "W",         DType.DigitData, mconst.APB_ID_DATA, 4, 1000)  
         , ReqId.ActPwrC: Msg("C Active power", "P L3", "W",         DType.DigitData, mconst.APC_ID_DATA, 4, 1000)             
-        , ReqId.ActPwr: Msg("Total Active power", "Total P", "W",   DType.DigitData, mconst.AP_ID_DATA, 4, 1000)   
+        , ReqId.ActPwr: Msg("Total Active power", "Total P", "W",   DType.DigitData, mconst.AIE_ID_DATA, 4, 1000)   
 
         , ReqId.ReActPwrA: Msg("A ReActive power", "Q L1", "var",     DType.DigitData, mconst.RPA_ID_DATA, 4, 1000)     
         , ReqId.ReActPwrB: Msg("B ReActive power", "Q L2", "var",     DType.DigitData, mconst.RPB_ID_DATA, 4, 1000)  
