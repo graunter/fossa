@@ -15,6 +15,7 @@ import emeters.milur_meter as mtr
 from emeters.milur_meter_const import ReqId
 import sett_view as sview
 import rec_view as rview
+from proba import run_tester
 
 view_frames = defaultdict(list)
 
@@ -30,6 +31,7 @@ g_pull_visit_thrd = None
 g_cnt_lst = []
 g_info_frame: HardInfoFrame
 g_mb_adr_ledit: ttk.TTkLineEdit
+g_mb_detect_btn: ttk.TTkButton
 g_sett_frame: sview.SettingsFrame
 g_rec_frame: rview.RecordsFrame
 r1: ttk.TTkRadioButton
@@ -157,7 +159,11 @@ def on_mb_open_btn():
         ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
         return
     
-    mb_adr = int(g_mb_adr_ledit.text().toAscii())
+    # mb_adr = int(g_mb_adr_ledit.text().toAscii())
+    if not g_mb_adr_ledit.currentText():
+        return
+    else:
+        mb_adr = int(g_mb_adr_ledit.currentText().toAscii())
         
     if mtr.MilurMeter.check_resp_on_adr(mb_adr, g_ser) == True:
         bg_color = ttk.TTkColor.BG_GREEN
@@ -220,6 +226,69 @@ def on_mb_open_btn():
         g_pull_visit_thrd.start()
 
 
+def on_mb_detect_btn():
+    global g_ser
+    global g_mb_port_name
+    global g_mb_adr_ledit
+    global g_mb_detect_btn
+    global g_current_frame
+
+    port_name = g_mb_port_name.text()
+
+    try:
+        if 'Open' in g_mb_open_btn.text().toAscii():
+            g_ser = serial.Serial(
+                port=str(port_name)
+                , baudrate=9600
+                , bytesize=8
+                , parity='N'
+                , stopbits=1
+                , timeout=0.1
+                , rtscts=False
+                , dsrdtr=False
+            )
+            g_sema = Semaphore()
+        else:
+            close_serial()
+            return
+    except serial.SerialException as e:
+        err_box = ttk.TTkMessageBox(
+                title="Serial port error",
+                text=format(e)
+            )
+        ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+        return
+
+
+    try:
+        bus_adr = []
+        for test_adr in range(1, 25):
+            g_mb_detect_btn.setText(f"Check {str(test_adr)}")
+            g_mb_detect_btn.update()
+            ttk.TTkLog.debug(f"check addres {str(test_adr)}")
+            if mtr.MilurMeter.check_resp_on_adr(test_adr, g_ser) == True:
+                bus_adr.append(str(test_adr))
+        
+        g_mb_detect_btn.setText(f"Detect..")
+        close_serial()
+
+        old_adr = g_mb_adr_ledit.currentText()
+
+        g_mb_adr_ledit.clear()
+        if bus_adr:
+            g_mb_adr_ledit.addItems(bus_adr)
+            if old_adr in bus_adr:
+                g_mb_adr_ledit.setCurrentText(old_adr)
+            else:
+                g_mb_adr_ledit.setCurrentText(bus_adr[0])   
+
+    except Exception as e:
+        err_box = ttk.TTkMessageBox( title="General error", text=format(e) )
+        ttk.TTkHelper.overlay(None, err_box, 50, 20, True)
+        close_serial()        
+        return
+
+
 
 def on_visit_pull():
 
@@ -251,6 +320,7 @@ def build_main_screen(root=None):
     global g_mb_port_name
     global g_info_frame
     global g_mb_adr_ledit
+    global g_mb_detect_btn
     global g_view_frame
     global g_sett_frame
     global g_rec_frame
@@ -416,9 +486,14 @@ def build_main_screen(root=None):
     mb_adr_line.setLayout(ttk.TTkHBoxLayout())
     mb_adr_line.layout().addWidget(ttk.TTkSpacer())
     mb_adr_line.layout().addWidget(ttk.TTkLabel(text="Address", maxWidth = 30))   
-    g_mb_adr_ledit = ttk.TTkLineEdit(text=str(TEST_ADR)) 
+    g_mb_adr_ledit = ttk.TTkComboBox(text="Modbus address", list=["20", "21", "22", "23", "24"]) 
+    g_mb_adr_ledit.setEditable(True)    
+    g_mb_adr_ledit.setCurrentText("21")
+    # g_mb_adr_ledit.setCurrentIndex(0)
     mb_adr_line.layout().addWidget(g_mb_adr_ledit)
-    mb_adr_line.layout().addWidget(ttk.TTkButton(border=True, text="Detect..", maxHeight = 5 ))
+    g_mb_detect_btn = ttk.TTkButton(border=True, text="Detect..", maxHeight = 5 )
+    g_mb_detect_btn.clicked.connect(on_mb_detect_btn)  
+    mb_adr_line.layout().addWidget(g_mb_detect_btn)
     mb_adr_line.addWidget(ttk.TTkSpacer())
 
     mb_frame = ttk.TTkFrame(border=True, visible=False)
