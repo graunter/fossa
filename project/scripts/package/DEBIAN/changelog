@@ -1,8 +1,9 @@
-fossa (0.0.2) no-stable; urgency=medium
+fossa (1.0.0) no-stable; urgency=medium
 
 
 
 [Sergey Zhukov]
+* 1.0.0 - compiled version
 * 0.0.2 - small improvments in pool algorithm
   0.0.1 - just project template
 

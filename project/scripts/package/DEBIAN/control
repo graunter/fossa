@@ -1,6 +1,6 @@
 
 Package: fossa
-Version: 0.0.2
+Version: 1.0.0
 Section: embedded
 Priority: optional
 Depends: libc6 (>= 2.31)
