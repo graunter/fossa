@@ -113,8 +113,8 @@ class MilurMeter:
             # adr id_cmd crc1 crc2
             resp = ph.read(5)
             
-            if resp[1] != mconst.AOPEN_ID_CMD and resp[2] != 1:
-                raise ProtocolException("Can't open session")
+            # if resp[1] != mconst.AOPEN_ID_CMD and resp[2] != 1:
+                # raise ProtocolException("Can't open session")
                 
             
 
@@ -124,10 +124,16 @@ class MilurMeter:
         # TODO: There is no clear secription for 'releare' respose
         # may be standard error processing over exeption will be enought
         self.run_request(send_dat, True)
+        time.sleep(0.1)
 
 
 
     def raise_with_dbg_data(self, msg, tx=None, rx=None):
+        if isinstance(rx, bytes):
+            real_rx = list(rx)
+        else:
+            real_rx = rx
+
         raise ProtocolException(
             f'{msg}'
             , f'TX: [{str(tx)}], '
